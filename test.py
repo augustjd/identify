@@ -53,9 +53,26 @@ class TestNNSHelpers(TestNumpyArray):
         self.triangle = np.array([[0,0,0,1],
                                   [1,0,0,1],
                                   [1,1,0,1]])
+        self.nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(self.triangle)
 
-    def test_covariance_of_self_is_zero(self):
-        self.assertArraysApproximatelyEqual(cross_covariance(self.triangle, self.triangle), np.zeros((4,4)))
+    def test_covariance(self):
+        self.assertArraysApproximatelyEqual(cross_covariance(self.triangle, self.triangle), [[2/9., 1/9., 0, 0],
+                                                                                             [1/9., 2/9., 0, 0],
+                                                                                             [0, 0, 0, 0],
+                                                                                             [0, 0, 0, 0]])
+    def test_closest_point(self):
+        test_point = np.array([2,2,0,1])
+        closest_point_index = self.nn.kneighbors(test_point)[1]
+
+        self.assertArraysApproximatelyEqual(self.triangle[closest_point_index], [1,1,0,1])
+
+        test_point = np.array([-1,-2,0,1])
+        closest_point_index = self.nn.kneighbors(test_point)[1]
+
+        self.assertArraysApproximatelyEqual(self.triangle[closest_point_index], [0,0,0,1])
+
+    def test_mean_square_error_of_self_is_zero(self):
+        self.assertEqual(mean_square_error(self.triangle, self.triangle), 0)
 
 def test_icp(P, iterations):
     for i in range(iterations):
@@ -81,5 +98,7 @@ def test_icp(P, iterations):
 
 if __name__ == "__main__":
     suite = unittest.TestLoader().loadTestsFromTestCase(TestGeometry)
-    suite.addTest(TestNNSHelpers("test_covariance_of_self_is_zero"))
+    suite.addTest(TestNNSHelpers("test_covariance"))
+    suite.addTest(TestNNSHelpers("test_closest_point"))
+    suite.addTest(TestNNSHelpers("test_mean_square_error_of_self_is_zero"))
     unittest.TextTestRunner(verbosity=2).run(suite)
