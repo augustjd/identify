@@ -4,7 +4,20 @@ import numpy as np
 from nns import *
 import unittest
 
-class TestGeometry(unittest.TestCase):
+class TestNumpyArray(unittest.TestCase):
+    def assertArraysEqual(self, left, right):
+        if type(left)  is list: left  = np.array(left)
+        if type(right) is list: right = np.array(right)
+
+        return self.assertTrue(np.array_equal(left, right))
+
+    def assertArraysApproximatelyEqual(self, left, right, epsilon = 0.05):
+        if type(left)  is list: left  = np.array(left)
+        if type(right) is list: right = np.array(right)
+
+        return self.assertTrue(np.allclose(left, right))
+
+class TestGeometry(TestNumpyArray):
     def setUp(self):
         self.point = np.array([1,0,0,1])
         self.points = np.array([[1,0,0,1],
@@ -14,15 +27,32 @@ class TestGeometry(unittest.TestCase):
     def test_point_translation(self):
         translated_point = np.dot(translation_matrix(np.array([1,1,1])), self.point)
 
-        self.assertTrue(np.array_equal(translated_point, np.array([2,1,1,1])))
+        self.assertArraysEqual(translated_point, [2,1,1,1])
 
     def test_cloud_translation(self):
         translated_points = apply_transform(translation_matrix(np.array([1,1,1])), self.points)
 
-        self.assertTrue(np.array_equal(translated_points, np.array([[2,1,1,1],
-                                                                    [1,2,1,1],
-                                                                    [1,1,2,1]])))
+        self.assertArraysEqual(translated_points, [[2,1,1,1],
+                                                   [1,2,1,1],
+                                                   [1,1,2,1]])
 
+    def test_point_rotation(self):
+        rotated_point = np.dot(promote(rotation_matrix(0,0,math.pi/2)), self.point)
+
+        self.assertArraysApproximatelyEqual(rotated_point, [0.,1.,0.,1.])
+
+    def test_cloud_rotation(self):
+        rotated_points = apply_transform(promote(rotation_matrix(0,0,math.pi/2)), self.points)
+
+        self.assertArraysApproximatelyEqual(rotated_points, [[0.,1.,0.,1.],
+                                                             [-1,0.,0.,1.],
+                                                             [0.,0.,1.,1.]])
+
+class TestNNSHelpers(TestNumpyArray):
+    def setUp(self):
+        self.triangle = np.array([[0,0,0,1],
+                                  [1,0,0,1],
+                                  [1,1,0,1]])
 
 def test_icp(P, iterations):
     for i in range(iterations):
@@ -47,11 +77,5 @@ def test_icp(P, iterations):
         print "Error in identity:", mean_square_error(M, np.identity(4))
 
 if __name__ == "__main__":
-    # x = load_obj_file(argv[1])
-    # points = x[1]
-
-    #points = np.array([[0,1,2,1],[2,3,4,1],[5,6,7,1]])
     suite = unittest.TestLoader().loadTestsFromTestCase(TestGeometry)
     unittest.TextTestRunner(verbosity=2).run(suite)
-
-    #test_icp(points, 1)
