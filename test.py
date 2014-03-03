@@ -5,17 +5,17 @@ from nns import *
 import unittest
 
 class TestNumpyArray(unittest.TestCase):
-    def assertArraysEqual(self, left, right):
+    def assertArraysEqual(self, left, right, msg = None):
         if type(left)  is list: left  = np.array(left)
         if type(right) is list: right = np.array(right)
 
-        return self.assertTrue(np.array_equal(left, right))
+        return self.assertTrue(np.array_equal(left, right), msg)
 
-    def assertArraysApproximatelyEqual(self, left, right, epsilon = 0.05):
+    def assertArraysApproximatelyEqual(self, left, right, msg = None, epsilon = 1e-05):
         if type(left)  is list: left  = np.array(left)
         if type(right) is list: right = np.array(right)
 
-        return self.assertTrue(np.allclose(left, right))
+        return self.assertTrue(np.allclose(left, right, epsilon), msg)
 
 class TestGeometry(TestNumpyArray):
     def setUp(self):
@@ -56,10 +56,11 @@ class TestNNSHelpers(TestNumpyArray):
         self.nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(self.triangle)
 
     def test_covariance(self):
-        self.assertArraysApproximatelyEqual(cross_covariance(self.triangle, self.triangle), [[2/9., 1/9., 0, 0],
-                                                                                             [1/9., 2/9., 0, 0],
-                                                                                             [0, 0, 0, 0],
-                                                                                             [0, 0, 0, 0]])
+        self.assertArraysApproximatelyEqual(
+                cross_covariance(self.triangle, self.triangle), [[2/9., 1/9., 0, 0],
+                                                                 [1/9., 2/9., 0, 0],
+                                                                 [0, 0, 0, 0],
+                                                                 [0, 0, 0, 0]])
     def test_closest_point(self):
         test_point = np.array([2,2,0,1])
         closest_point_index = self.nn.kneighbors(test_point)[1]
@@ -74,31 +75,42 @@ class TestNNSHelpers(TestNumpyArray):
     def test_mean_square_error_of_self_is_zero(self):
         self.assertEqual(mean_square_error(self.triangle, self.triangle), 0)
 
-def test_icp(P, iterations):
-    for i in range(iterations):
-        # M = promote(np.random.random((3,3)))
-        M = promote(rotation_matrix(0,math.pi / 2, 0))
+class TestNNS(TestNumpyArray):
+    def setUp(self):
+        self.triangle = np.array([[0,0,0,1],
+                                  [1,0,0,1],
+                                  [1,1,0,1]])
 
-        print "Actual transform:"
-        print M
+    def test_icp_under_identity(self):
+        result = icp(self.triangle, self.triangle.copy())
 
-        P_copy = P.copy()
-        print "P:"
-        print P
-        P_copy = apply_transform(M, P_copy)
-        print "X:"
-        print P_copy
-        icp_estimate_M = icp(P, P_copy)
+        print
+        print result
 
-        print "Predicted transform:"
-        print icp_estimate_M
+        self.assertArraysApproximatelyEqual(result, np.identity(4), 
+                "Result should be close to the 4x4 identity matrix.")
 
-        print "Error:", mean_square_error(M, icp_estimate_M)
-        print "Error in identity:", mean_square_error(M, np.identity(4))
+    def test_icp_under_rotation(self):
+        transform = promote(rotation_matrix(0,0,math.pi/2))
+        result = icp(self.triangle, apply_transform(transform, self.triangle.copy()))
 
+        print
+        print "Actual:"
+        print transform
+        print "Predicted:"
+        print result
+
+        self.assertArraysApproximatelyEqual(result, transform, 
+                "Result should be close to the rotation matrix about Z, clockwise pi/2 radians.")
+        
 if __name__ == "__main__":
     suite = unittest.TestLoader().loadTestsFromTestCase(TestGeometry)
+
     suite.addTest(TestNNSHelpers("test_covariance"))
     suite.addTest(TestNNSHelpers("test_closest_point"))
     suite.addTest(TestNNSHelpers("test_mean_square_error_of_self_is_zero"))
+
+    suite.addTest(TestNNS("test_icp_under_identity"))
+    suite.addTest(TestNNS("test_icp_under_rotation"))
+
     unittest.TextTestRunner(verbosity=2).run(suite)
