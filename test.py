@@ -54,6 +54,9 @@ class TestNNSHelpers(TestNumpyArray):
                                   [1,0,0,1],
                                   [1,1,0,1]])
 
+    def test_covariance_of_self_is_zero(self):
+        self.assertArraysApproximatelyEqual(cross_covariance(self.triangle, self.triangle), np.zeros((4,4)))
+
 def test_icp(P, iterations):
     for i in range(iterations):
         # M = promote(np.random.random((3,3)))
@@ -78,4 +81,5 @@ def test_icp(P, iterations):
 
 if __name__ == "__main__":
     suite = unittest.TestLoader().loadTestsFromTestCase(TestGeometry)
+    suite.addTest(TestNNSHelpers("test_covariance_of_self_is_zero"))
     unittest.TextTestRunner(verbosity=2).run(suite)
