@@ -3,6 +3,8 @@ import numpy as np
 from geometry import *
 import cv2
 
+import random
+
 from operator import add
 
 EPSILON = 0.01
@@ -93,6 +95,9 @@ def mean_square_error(P,X):
 
     return error / len(P)
 
+
+SHAKE_AMOUNT = 1.5
+
 def icp(P,X,up = None, ux = None):
     """Returns the transformation matrix to take the point cloud X to the
     point cloud P by rigid transformation. If up and ux are specified, rotations
@@ -108,40 +113,55 @@ def icp(P,X,up = None, ux = None):
 
     P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(P)
 
-    last_error = mean_square_error(P,X_copy)
-    for x in range(400):
-        #print "Global Matrix:"
-        #print global_matrix
+    last_error   = mean_square_error(P,X_copy)
+    lowest_error = last_error
 
-        #print "X_copy:"
-        #print X_copy
+    best_global_matrix = global_matrix
 
+    for x in range(100):
         rot, tr = optimal_matricies(P, X_copy, P_nearest_neighbors, up, ux)
 
         # for column vectors on right, rotate, then translate
         matrix = np.dot(tr, rot)
 
         global_matrix = np.dot(matrix, global_matrix)
-        
-        #print "Matrix:"
-        #print matrix
-
-        #print "P transformed:"
-        #print apply_transform(matrix, P.copy())
-        #print P.copy()
 
         X_copy = apply_transform(matrix, X_copy)
         ux = apply_transform(matrix, ux)
 
         assert(np.allclose(ux, up))
 
-        # error should decrease with every step
         if last_error < 1e-8:
             break
 
-        print last_error
-        #assert(last_error >= mean_square_error(P,X_copy))
+        #print last_error
+        # error should decrease with every step
+        if last_error < mean_square_error(P,X_copy):
+            print "Error increasing!"
+            shake = promote(rotation_matrix(random.uniform(-SHAKE_AMOUNT, SHAKE_AMOUNT),
+                                            random.uniform(-SHAKE_AMOUNT, SHAKE_AMOUNT),
+                                            random.uniform(-SHAKE_AMOUNT, SHAKE_AMOUNT)))
+            shake = np.dot(shake, translation_matrix(np.array([random.uniform(-SHAKE_AMOUNT, SHAKE_AMOUNT),
+                                                    random.uniform(-SHAKE_AMOUNT, SHAKE_AMOUNT),
+                                                    random.uniform(-SHAKE_AMOUNT, SHAKE_AMOUNT)])))
+            #print "Shake matrix:"
+            #print shake
+
+            global_matrix = np.dot(shake, global_matrix)
+            X_copy = apply_transform(shake, X_copy)
+            ux = apply_transform(shake, ux)
+
         last_error = mean_square_error(P,X_copy)
 
+        if last_error < lowest_error:
+            lowest_error = last_error
+            best_global_matrix = global_matrix
 
-    return global_matrix
+
+    print "Lowest Mean Squared Error:", lowest_error
+    return best_global_matrix
+
+
+if __name__ == "__main__":
+    if len(argv) != 5:
+        print "Usage:" + argv[0] + " <destination_file> <source_file> <output_file>
