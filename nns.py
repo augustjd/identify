@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
 from geometry import *
@@ -6,6 +8,8 @@ import cv2
 import random
 
 from operator import add
+from sys import *
+from objfile import *
 
 EPSILON = 0.01
 
@@ -25,9 +29,7 @@ def cross_covariance(P, X,
         up = None, # fixed point on P, about which rotations occur
         ux = None):# fixed point on X, about which rotations occur
     """Returns the cross-covariance matrix of P and X using the 
-    center of masses of each point cloud, as defined in [Besl1992].
-    Asserts that P and X have same size."""
-    assert len(P) == len(X)
+    center of masses of each point cloud, as defined in [Besl1992]."""
 
     if P_nearest_neighbors == None:
         P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(P)
@@ -90,7 +92,7 @@ def optimal_matricies(P, X, P_nearest_neighbors = None, up = None, ux = None):
 
 def mean_square_error(P,X):
     error = 0
-    for i in range(len(P)):
+    for i in range(min([len(P), len(X)])):
         error += np.linalg.norm(P[i] - X[i], 2) # returns the l2 norm
 
     return error / len(P)
@@ -119,7 +121,15 @@ def icp(P,X,up = None, ux = None):
     best_global_matrix = global_matrix
 
     for x in range(100):
-        rot, tr = optimal_matricies(P, X_copy, P_nearest_neighbors, up, ux)
+        # if X has more points than P,
+        # randomly subsample from X, differently
+        # each iteration.
+        if len(X_copy) > len(P):
+            X_sample = np.array(random.sample(X_copy, len(P)))
+        else:
+            X_sample = X_copy
+
+        rot, tr = optimal_matricies(P, X_sample, P_nearest_neighbors, up, ux)
 
         # for column vectors on right, rotate, then translate
         matrix = np.dot(tr, rot)
@@ -134,7 +144,6 @@ def icp(P,X,up = None, ux = None):
         if last_error < 1e-8:
             break
 
-        #print last_error
         # error should decrease with every step
         if last_error < mean_square_error(P,X_copy):
             print "Error increasing!"
@@ -163,5 +172,19 @@ def icp(P,X,up = None, ux = None):
 
 
 if __name__ == "__main__":
-    if len(argv) != 5:
-        print "Usage:" + argv[0] + " <destination_file> <source_file> <output_file>
+    if len(argv) != 4:
+        print "Usage:" + argv[0] + " <destination_file> <source_file> <output_file>"
+        exit(0)
+
+    destination_mesh  = load_obj_file(argv[1])[1]
+    print "Loaded " + argv[1] + " as " + str(len(destination_mesh)) + " points."
+    source_file_array = load_obj_file(argv[2])
+    print "Loaded " + argv[2] + " as " + str(len(source_file_array[1])) + " points."
+
+    source_mesh = source_file_array[1]
+
+    transform = icp(destination_mesh, source_mesh)
+
+    source_mesh = apply_transform(transform, source_mesh)
+
+    save_obj_file(argv[3], source_file_array[0], source_mesh, source_file_array[2])
