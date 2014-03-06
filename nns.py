@@ -1,31 +1,22 @@
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
+from geometry import *
+import cv2
 
 from operator import add
 
+EPSILON = 0.01
+
 def max_index(arr):
     """Returns the index of the maximum item in arr."""
-    max = None
-    max_index = None for i in range(len(arr)):
-        if max == None or arr[i] > max:
-            max = arr[i]
+    max_value = None
+    max_index = None 
+    for i in range(len(arr)):
+        if max_value == None or arr[i] > max_value:
+            max_value = arr[i]
             max_index = i
 
     return max_index
-
-def nearest_neighbor(p, A, A_nearest_neighbors = None):
-    """Returns the point in A that is nearest to p, as a k-dimensional numpy.array()"""
-    if A_nearest_neighbors == None:
-        A_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(A)
-
-    dist, indices = A_nearest_neighbors.kneighbors(p)
-    # dist is easily recoverable from p and the closest point in A, so just give the closest point
-    return A[indices[0][0]]
-
-def center_of_mass(P):
-    """Returns the 'center of mass', or average point,
-    in the point cloud P."""
-    return reduce(add, P) / float(len(P))
 
 def cross_covariance(P, X, 
         P_nearest_neighbors = None,  # if we've already made a kd_tree, use that
@@ -41,40 +32,29 @@ def cross_covariance(P, X,
 
     distances, indices = P_nearest_neighbors.kneighbors(X)
 
-    matching = [ [P[i], X[index_arr[0]]] for i,index_arr in enumerate(indices)]
-
-    print matching
+    # make an array of pairs (pi,xi) for each xi in X, such that
+    # for xi, pi is the closest point to xi in P.
+    matching = []
+    for i in range(len(indices)):
+        matching.append([P[indices[i][0]], X[i]])
 
     if up == None:
         up = center_of_mass(P)
     if ux == None:
         ux = center_of_mass(X)
 
-    return reduce(add, [np.outer(px[0] - up, px[1] - ux) for px in matching]) / float(len(P))
+    return reduce(add, [np.outer(px[1] - ux, px[0] - up) for px in matching]) / float(len(P))
 
-def translation_matrix(x,y,z):
-    return np.array([[1,0,0,x], 
-                     [0,1,0,y], 
-                     [0,0,1,z],
-                     [0,0,0,1]])
-
-def quaternion_to_rotation_matrix(q):
-    """Returns a 4x4 matrix for rotation in R3, with additional zeroed final column and row,
-    for composability with translation matricies."""
-    return np.array([
-        [pow(q[0],2) + pow(q[1],2) - pow(q[2],2) - pow(q[3],2), 2*(q[1]*q[2] - q[0]*q[3]), 2*(q[1]*q[3] + q[0]*q[2]),0],
-        [2*(q[1]*q[2] + q[0]*q[3]), pow(q[0],2) + pow(q[2],2) - pow(q[1],2) - pow(q[3],2), 2*(q[2]*q[3] - q[0]*q[1]),0],
-        [2*(q[1]*q[3] - q[0]*q[2]), 2*(q[2]*q[3] + q[0]*q[1]), pow(q[0],2) + pow(q[3],2) - pow(q[1],2) - pow(q[2],2)],0],
-        [0,0,0,0])
 
 def optimal_rotation_matrix(P, X, P_nearest_neighbors = None, up = None, ux = None):
-    """Finds the optimal rotation matrix Q of the point sets P and X, assuming P is fixed."""
+    """Returns the optimal rotation matrix Q of the point set X for minimizing
+    its covariance with P, a 3x3 matrix. See [Besl92] for details."""
     if P_nearest_neighbors == None:
         P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(P)
 
     cross_covariance_matrix = cross_covariance(P,X, P_nearest_neighbors, up, ux)
 
-    cc_transpose_difference = cross_covariance - cross_covariance.T
+    cc_transpose_difference = cross_covariance_matrix - cross_covariance_matrix.T
     Delta = np.array([cc_transpose_difference[1, 2], cc_transpose_difference[2, 0], cc_transpose_difference[0, 1]])
 
     trace           = np.trace(cross_covariance_matrix)
@@ -84,33 +64,41 @@ def optimal_rotation_matrix(P, X, P_nearest_neighbors = None, up = None, ux = No
     Q[0,0]     = trace
     Q[0,1:4]   = Delta.T
     Q[1:4,0]   = Delta
-    Q[1:4,1:4] = cross_covariance_matrix + cross_covariance_matrix.T - trace * np.identity(3)
+    Q[1:4,1:4] = cross_covariance_matrix[0:3,0:3] + cross_covariance_matrix.T[0:3, 0:3] - trace * np.identity(3)
 
-    w, v = np.linalg.eig(Q)
-    max_eigenvalue_index = max_index(w)
+    v, w = np.linalg.eig(Q)
+    max_eigenvalue_index = max_index(v)
     max_eigenvalue  = v[max_eigenvalue_index]
-    max_eigenvector = w[max_eigenvalue_index]
+    max_eigenvector = w[:,max_eigenvalue_index]
+
+    #print "Eigenvectors:"
+    #print w
+    #print "Eigenvalues:"
+    #print v
+    #print "Max Eigenvector:"
+    #print max_eigenvector
 
     # this max_eigenvector is the rotation quaternion we need,
     # so make it a rotation matrix
-    return quaternion_to_rotation_matrix(max_eigenvector)
+    return promote(quaternion_to_rotation_matrix(unit_vector(max_eigenvector)))
 
 def optimal_matricies(P, X, P_nearest_neighbors = None, up = None, ux = None):
-    return optimal_rotation_matrix(P,X,P_nearest_neighbors,up,ux), translation_matrix(up-ux)
+    rot = optimal_rotation_matrix(P,X,P_nearest_neighbors,up,ux)
+    return rot, translation_matrix(up - np.dot(rot, ux))
 
 def mean_square_error(P,X):
     error = 0
     for i in range(len(P)):
-        error += np.linalg.norm(P[i] - X[i], order=2)
+        error += np.linalg.norm(P[i] - X[i], 2) # returns the l2 norm
 
     return error / len(P)
 
-def icp(P,X,up = None, ux = None, threshold = 0.9):
+def icp(P,X,up = None, ux = None):
     """Returns the transformation matrix to take the point cloud X to the
     point cloud P by rigid transformation. If up and ux are specified, rotations
     and translations are relative to up on P and ux on X, which remain fixed in the
     transformation."""
-    matrix = np.identity(4)
+    global_matrix = np.identity(4)
     X_copy = np.copy(X)
 
     if up == None:
@@ -120,16 +108,40 @@ def icp(P,X,up = None, ux = None, threshold = 0.9):
 
     P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(P)
 
-    while True:
+    last_error = mean_square_error(P,X_copy)
+    for x in range(400):
+        #print "Global Matrix:"
+        #print global_matrix
+
+        #print "X_copy:"
+        #print X_copy
+
         rot, tr = optimal_matricies(P, X_copy, P_nearest_neighbors, up, ux)
-        matrix = dot(matrix, rot)
-        matrix = dot(matrix, tr)
 
-        # apply matricies
-        dot(rot, X_copy)
-        dot(tr,  X_copy)
+        # for column vectors on right, rotate, then translate
+        matrix = np.dot(tr, rot)
 
-        if mean_square_error(P, X_copy) < threshold
+        global_matrix = np.dot(matrix, global_matrix)
+        
+        #print "Matrix:"
+        #print matrix
+
+        #print "P transformed:"
+        #print apply_transform(matrix, P.copy())
+        #print P.copy()
+
+        X_copy = apply_transform(matrix, X_copy)
+        ux = apply_transform(matrix, ux)
+
+        assert(np.allclose(ux, up))
+
+        # error should decrease with every step
+        if last_error < 1e-8:
             break
 
-    return matrix
+        print last_error
+        #assert(last_error >= mean_square_error(P,X_copy))
+        last_error = mean_square_error(P,X_copy)
+
+
+    return global_matrix
