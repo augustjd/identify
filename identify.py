@@ -12,6 +12,8 @@ from objfile import *
 
 EPSILON = 0.01
 
+CONVERGENCE_THRESHOLD = 1.0e-8
+
 DO_SCALE = True
 
 def scaling_step(P,X):
@@ -165,7 +167,7 @@ def icp(P,X,up = None, ux = None, P_nearest_neighbors = None):
 
         assert(np.allclose(center_of_mass(X_copy), up))
 
-        if last_error < 1e-8:
+        if last_error < CONVERGENCE_THRESHOLD:
             break
 
 
@@ -257,21 +259,34 @@ def locate_subset(P, X, desired, up = None, ux = None):
 if __name__ == "__main__":
     from sys import *
     if len(argv) < 4:
-        print "Usage: {0} [flags] <destination_file> <source_file> <output_file>".format(
+        print "Usage: {0} [flags] <source_file> <destination_file> <output_file>".format(
                 argv[0]
                 )
         print "Supported Flags"
-        print "\t-v: verbose output mode"
+        print "\t-v:\t\t\tverbose output mode"
+        print "\t--convergence=[val]:\trun identification until matching confidence "
+        print "\t\t\t\texceeds val (default 0.1)"
         exit(0)
 
-    if "-v" in argv:
+    flags = argv[:-3]
+
+    if "-v" in flags:
         print "Verbose."
         VERBOSE = True
 
-    destination_mesh  = load_obj_file(argv[-3])[1]
-    print "Loaded {0} as {1} points.".format(argv[-3], len(destination_mesh))
-    source_file_array = load_obj_file(argv[-2])
-    print "Loaded {0} as {1} points.".format(argv[-2], len(source_file_array[1]))
+    eps = filter(lambda s: s.startswith("--convergence="), flags)
+    if len(eps) > 0:
+        try:
+            CONVERGENCE_THRESHOLD = float(eps[-1][len("--convergence="):])
+        except Exception as e:
+            print "Error parsing convergence threshold {0}".format(eps[-1])
+            exit(0)
+
+
+    source_file_array = load_obj_file(argv[-3])
+    print "Loaded {0} as {1} points.".format(argv[-3], len(source_file_array[1]))
+    destination_mesh  = load_obj_file(argv[-2])[1]
+    print "Loaded {0} as {1} points.".format(argv[-2], len(destination_mesh))
 
     source_mesh = source_file_array[1]
 
