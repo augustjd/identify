@@ -13,7 +13,7 @@ from objfile import *
 
 EPSILON = 0.01
 
-DO_SCALE = False
+DO_SCALE = True
 
 def scaling_step(P,X):
     """Returns a matrix M which scales X to best match the dimensions of P,
@@ -184,15 +184,15 @@ def icp(P,X,up = None, ux = None, P_nearest_neighbors = None):
             shake = np.dot(shake, translation_matrix(np.array([random.uniform(-SHAKE_AMOUNT, SHAKE_AMOUNT),
                                                     random.uniform(-SHAKE_AMOUNT, SHAKE_AMOUNT),
                                                     random.uniform(-SHAKE_AMOUNT, SHAKE_AMOUNT)])))
-            #print "Shake matrix:"
-            #print shake
 
             global_matrix = np.dot(shake, global_matrix)
             X_copy = apply_transform(shake, X_copy)
             ux = apply_transform(shake, ux)
 
         if VERBOSE:
-            print "Last Error:", last_error, "Lowest Error:", lowest_error
+            print "Iteration {0:>3}: Last Error: {1:f} Lowest Error {2:f}".format(
+                    x, last_error, lowest_error
+                    )
 
         if last_error < lowest_error:
             lowest_error = last_error
@@ -265,9 +265,9 @@ if __name__ == "__main__":
         VERBOSE = True
 
     destination_mesh  = load_obj_file(argv[-3])[1]
-    print "Loaded " + argv[1] + " as " + str(len(destination_mesh)) + " points."
+    print "Loaded {0} as {1} points.".format(argv[-3], len(destination_mesh))
     source_file_array = load_obj_file(argv[-2])
-    print "Loaded " + argv[2] + " as " + str(len(source_file_array[1])) + " points."
+    print "Loaded {0} as {1} points.".format(argv[-2], len(source_file_array[1]))
 
     source_mesh = source_file_array[1]
 
@@ -277,3 +277,5 @@ if __name__ == "__main__":
     source_mesh = apply_transform(transform, source_mesh)
 
     save_obj_file(argv[-1], source_file_array[0], source_mesh, source_file_array[2])
+
+    print "Saved output to file '{0}'.".format(argv[-1])
