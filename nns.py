@@ -13,6 +13,8 @@ from objfile import *
 
 EPSILON = 0.01
 
+DO_SCALE = False
+
 def scaling_step(P,X):
     """Returns a matrix M which scales X to best match the dimensions of P,
     by taking the length of the diagonal of their bounding boxes."""
@@ -22,7 +24,10 @@ def scaling_step(P,X):
     X_bounding = bounding_box(X)
     X_diagonal_length = np.linalg.norm(X_bounding[1] - X_bounding[0], 2)
 
-    scale_factor = P_diagonal_length / X_diagonal_length
+    if not DO_SCALE:
+        scale_factor = 1.0
+    else:
+        scale_factor = P_diagonal_length / X_diagonal_length
 
     print "Scaling X by factor of " + str(scale_factor)
 
