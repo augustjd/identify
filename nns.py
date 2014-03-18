@@ -13,6 +13,21 @@ from objfile import *
 
 EPSILON = 0.01
 
+def scaling_step(P,X):
+    """Returns a matrix M which scales X to best match the dimensions of P,
+    by taking the length of the diagonal of their bounding boxes."""
+    P_bounding = bounding_box(P)
+    P_diagonal_length = np.linalg.norm(P_bounding[1] - P_bounding[0], 2)
+
+    X_bounding = bounding_box(X)
+    X_diagonal_length = np.linalg.norm(X_bounding[1] - X_bounding[0], 2)
+
+    scale_factor = P_diagonal_length / X_diagonal_length
+
+    print "Scaling X by factor of " + str(scale_factor)
+
+    return scaling_matrix(np.array([scale_factor, scale_factor, scale_factor]))
+
 def max_index(arr):
     """Returns the index of the maximum item in arr."""
     max_value = None
@@ -34,20 +49,16 @@ def cross_covariance(P, X,
     if P_nearest_neighbors == None:
         P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(P)
 
-    distances, indices = P_nearest_neighbors.kneighbors(X)
-
     # make an array of pairs (pi,xi) for each xi in X, such that
     # for xi, pi is the closest point to xi in P.
-    matching = []
-    for i in range(len(indices)):
-        matching.append([P[indices[i][0]], X[i]])
+    matching = identify_points(P, X, P_nearest_neighbors)[0]
 
     if up == None:
         up = center_of_mass(P)
     if ux == None:
         ux = center_of_mass(X)
 
-    return reduce(add, [np.outer(px[1] - ux, px[0] - up) for px in matching]) / float(len(P))
+    return reduce(add, [np.outer(X[i] - ux, p - up) for i,p in enumerate(matching)]) / float(len(P))
 
 
 def optimal_rotation_matrix(P, X, P_nearest_neighbors = None, up = None, ux = None):
@@ -98,9 +109,12 @@ def mean_square_error(P,X):
     return error / len(P)
 
 
+DO_SHAKE = True
 SHAKE_AMOUNT = 1.5
 
-def icp(P,X,up = None, ux = None):
+VERBOSE = False
+
+def icp(P,X,up = None, ux = None, P_nearest_neighbors = None):
     """Returns the transformation matrix to take the point cloud X to the
     point cloud P by rigid transformation. If up and ux are specified, rotations
     and translations are relative to up on P and ux on X, which remain fixed in the
@@ -113,10 +127,16 @@ def icp(P,X,up = None, ux = None):
     if ux == None:
         ux = center_of_mass(X)
 
-    P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(P)
+    if P_nearest_neighbors == None:
+        P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(P)
 
     last_error   = mean_square_error(P,X_copy)
     lowest_error = last_error
+
+    global_matrix = scaling_step(P,X)
+
+    X_copy = apply_transform(global_matrix, X_copy)
+    ux     = apply_transform(global_matrix, ux)
 
     best_global_matrix = global_matrix
 
@@ -139,14 +159,20 @@ def icp(P,X,up = None, ux = None):
         X_copy = apply_transform(matrix, X_copy)
         ux = apply_transform(matrix, ux)
 
-        assert(np.allclose(ux, up))
+        assert(np.allclose(center_of_mass(X_copy), up))
 
         if last_error < 1e-8:
             break
 
+
+        current_error = mean_square_error(P, X_copy)
+
         # error should decrease with every step
-        if last_error < mean_square_error(P,X_copy):
-            print "Error increasing!"
+        if (last_error < current_error or 
+                abs(last_error - current_error) < 1e-9) and DO_SHAKE:
+            if VERBOSE:
+                print "Error has not improved. Shaking."
+
             shake = promote(rotation_matrix(random.uniform(-SHAKE_AMOUNT, SHAKE_AMOUNT),
                                             random.uniform(-SHAKE_AMOUNT, SHAKE_AMOUNT),
                                             random.uniform(-SHAKE_AMOUNT, SHAKE_AMOUNT)))
@@ -160,31 +186,89 @@ def icp(P,X,up = None, ux = None):
             X_copy = apply_transform(shake, X_copy)
             ux = apply_transform(shake, ux)
 
-        last_error = mean_square_error(P,X_copy)
+        if VERBOSE:
+            print "Last Error:", last_error, "Lowest Error:", lowest_error
 
         if last_error < lowest_error:
             lowest_error = last_error
             best_global_matrix = global_matrix
 
+        last_error    = current_error
+
 
     print "Lowest Mean Squared Error:", lowest_error
-    return best_global_matrix
+    return best_global_matrix, lowest_error
+
+def identify_points(P, X, P_nearest_neighbors = None):
+    """Returns a point cloud X' by matching each point on X
+    with its closest neighbor on P, as well as an array of 
+    relative confidences on the interval (0,1), determined
+    by the distance each point must move to get to its mapping."""
+
+    if P_nearest_neighbors == None:
+        P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(P)
+
+    distances, indices = P_nearest_neighbors.kneighbors(X)
+
+    max_dist = max(distances)
+    scaled_distances = [d / max_dist for d in distances]
+    # make an array of pairs (pi,xi) for each xi in X, such that
+    # for xi, pi is the closest point to xi in P.
+    matching = []
+    for i in range(len(indices)):
+        matching.append(P[indices[i][0]])
+
+    return np.array(matching), scaled_distances
+
+
+class PointMapping:
+    def __init__(self, label, source, destination, conf):
+        self.label       = label
+        self.source      = source
+        self.destination = destination
+        self.confidence  = confidence
+
+    def __str__(self):
+        return "{0} {1:6f} {2:6f} {3:6f} {4:6f} {5:6f} {6:6f} {7:6f}\n".format(
+                self.label,                                                    # 0 
+                self.source[0],   self.source[1],   self.source[2],            # 1 2 3
+                self.destination[0], self.destination[1], self.destination[2], # 4 5 6
+                self.confidence)                                               # 7
+
+def locate_subset(P, X, desired, up = None, ux = None):
+    """P,X are point clouds. desired is a dict <label, point> of points on X for which
+    we want equivalent locations on P. Returns a dict <label, PointMapping> for each
+    point in desired."""
+
+    P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(P)
+
+    global_matrix, error = icp(P,X,up,ux)
+    pts = apply_transform(global_matrix, np.array(desired.values()))
+
+    matching, distances = identify_points(P, pts, P_nearest_neighbors)
+
+    result = {}
 
 
 if __name__ == "__main__":
-    if len(argv) != 4:
+    if len(argv) < 4:
         print "Usage:" + argv[0] + " <destination_file> <source_file> <output_file>"
         exit(0)
 
-    destination_mesh  = load_obj_file(argv[1])[1]
+    if "-v" in argv:
+        print "Verbose."
+        VERBOSE = True
+
+    destination_mesh  = load_obj_file(argv[-3])[1]
     print "Loaded " + argv[1] + " as " + str(len(destination_mesh)) + " points."
-    source_file_array = load_obj_file(argv[2])
+    source_file_array = load_obj_file(argv[-2])
     print "Loaded " + argv[2] + " as " + str(len(source_file_array[1])) + " points."
 
     source_mesh = source_file_array[1]
 
-    transform = icp(destination_mesh, source_mesh)
+    P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(destination_mesh)
+    transform = icp(destination_mesh, source_mesh, None, None, P_nearest_neighbors)[0]
 
     source_mesh = apply_transform(transform, source_mesh)
 
-    save_obj_file(argv[3], source_file_array[0], source_mesh, source_file_array[2])
+    save_obj_file(argv[-1], source_file_array[0], source_mesh, source_file_array[2])

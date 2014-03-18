@@ -126,8 +126,9 @@ class TestNNS(TestNumpyArray):
         save_obj_file("./obj/shorts1vertex70transformed.obj", self.stuff[0], transformed, self.stuff[2])
         save_obj_file("./obj/shorts1vertex70predicted.obj", self.stuff[0], apply_transform(result.T, self.large.copy()), self.stuff[2])
         self.assertArraysApproximatelyEqual(result.T, transform)
+
     def test_large_icp_under_rotation_and_translation(self):
-        self.test_cloud_under_transformation(self.large, np.array([.9,1,0,0]), [0.9,0,0])
+        self.test_cloud_under_transformation(self.large, np.array([1,1,1,0]), [0.9,10,0])
 
     def test_cloud_under_transformation(self, cloud, translation, rotation):
         transform = np.dot(promote(rotation_matrix(rotation[0], rotation[1], rotation[2])), translation_matrix(translation))
@@ -151,6 +152,7 @@ class TestNNS(TestNumpyArray):
         
 if __name__ == "__main__":
     np.set_printoptions(suppress=True)
+    VERBOSE = True
 
     suite = unittest.TestLoader().loadTestsFromTestCase(TestGeometry)
 
