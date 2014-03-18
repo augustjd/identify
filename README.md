@@ -52,14 +52,14 @@ format.
 <label> <x-coord> <y-coord> <z-coord> <predicted-x-coord> <predicted-y-coord> <predicted-z-coord> <confidence>
 ...
 ```
-`<predicted-_-coord>` is a floating point number corresponding to the
-predicted position on *D* of this point on *S*.
+`<predicted-_-coord>` is a fixed point number with 8 decimal places
+corresponding to the predicted position on *D* of this point on *S*.
 
-`<confidence>` is a floating point number between 0.0 and 1.0, given in
-decimal notation, which corresponds to the accuracy with which this point is
-predicted to have been mapped. A score of 0.0 is bad, meaning that the system
-has low confidence in this mapping, while a score of 1.0 is good, meaning that
-the system believes the mapping is almost exact.
+`<confidence>` is a fixed point number with 8 decimal places between 0.0 and
+1.0, given in decimal notation, which corresponds to the accuracy with which
+this point is predicted to have been mapped. A score of 0.0 is bad, meaning
+that the system has low confidence in this mapping, while a score of 1.0 is
+good, meaning that the system believes the mapping is almost exact.
 
 Our algorithm guarantees that the predicted coordinates will correspond to
 actual points on *D*, even if the correspondence is incorrect.

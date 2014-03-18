@@ -227,20 +227,6 @@ def identify_points(P, X, P_nearest_neighbors = None):
     return np.array(matching), scaled_distances
 
 
-class PointMapping:
-    def __init__(self, label, source, destination, conf):
-        self.label       = label
-        self.source      = source
-        self.destination = destination
-        self.confidence  = confidence
-
-    def __str__(self):
-        return "{0} {1:6f} {2:6f} {3:6f} {4:6f} {5:6f} {6:6f} {7:6f}\n".format(
-                self.label,                                                    # 0 
-                self.source[0],   self.source[1],   self.source[2],            # 1 2 3
-                self.destination[0], self.destination[1], self.destination[2], # 4 5 6
-                self.confidence)                                               # 7
-
 def locate_subset(P, X, desired, up = None, ux = None):
     """P,X are point clouds. desired is a dict <label, point> of points on X for which
     we want equivalent locations on P. Returns a dict <label, PointMapping> for each
