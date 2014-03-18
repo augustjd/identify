@@ -8,7 +8,6 @@ import cv2
 import random
 
 from operator import add
-from sys import *
 from objfile import *
 
 EPSILON = 0.01
@@ -256,8 +255,13 @@ def locate_subset(P, X, desired, up = None, ux = None):
 
 
 if __name__ == "__main__":
+    from sys import *
     if len(argv) < 4:
-        print "Usage:" + argv[0] + " <destination_file> <source_file> <output_file>"
+        print "Usage: {0} [flags] <destination_file> <source_file> <output_file>".format(
+                argv[0]
+                )
+        print "Supported Flags"
+        print "\t-v: verbose output mode"
         exit(0)
 
     if "-v" in argv:
@@ -275,7 +279,7 @@ if __name__ == "__main__":
     transform = icp(destination_mesh, source_mesh, None, None, P_nearest_neighbors)[0]
 
     source_mesh = apply_transform(transform, source_mesh)
-
+ 
     save_obj_file(argv[-1], source_file_array[0], source_mesh, source_file_array[2])
 
     print "Saved output to file '{0}'.".format(argv[-1])
