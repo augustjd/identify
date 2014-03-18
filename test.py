@@ -87,7 +87,7 @@ class TestNNS(TestNumpyArray):
         self.large = self.stuff[1]
 
     def test_icp_under_identity(self):
-        result = icp(self.triangle, self.triangle.copy())
+        result = icp(self.triangle, self.triangle.copy())[0]
 
         print
         print result
@@ -96,7 +96,7 @@ class TestNNS(TestNumpyArray):
                 "Result should be close to the 4x4 identity matrix.")
 
     def test_large_icp_under_identity(self):
-        result = icp(self.large, self.large.copy())
+        result = icp(self.large, self.large.copy())[0]
 
         print
         print result
@@ -115,7 +115,7 @@ class TestNNS(TestNumpyArray):
     def test_large_icp_under_rotation(self):
         transform = promote(rotation_matrix(math.pi/9,math.pi/4,math.pi/9))
         transformed = apply_transform(transform, self.large.copy())
-        result = icp(self.large, transformed)
+        result = icp(self.large, transformed)[0]
 
         print
         print "Actual:"
@@ -142,7 +142,7 @@ class TestNNS(TestNumpyArray):
         print "Actual Transform:"
         print transform
 
-        result = icp(moved_cloud, cloud)
+        result = icp(moved_cloud, cloud)[0]
         print "Predicted Transform:"
         print result
         print "Predicted point cloud:"
@@ -152,7 +152,9 @@ class TestNNS(TestNumpyArray):
         
 if __name__ == "__main__":
     np.set_printoptions(suppress=True)
-    VERBOSE = True
+
+    VERBOSE  = False
+    DO_SCALE = True
 
     suite = unittest.TestLoader().loadTestsFromTestCase(TestGeometry)
 
@@ -162,7 +164,7 @@ if __name__ == "__main__":
 
     #suite.addTest(TestNNS("test_icp_under_identity"))
     #suite.addTest(TestNNS("test_large_icp_under_identity"))
-    suite.addTest(TestNNS("test_icp_under_rotation"))
+    #suite.addTest(TestNNS("test_icp_under_rotation"))
     #suite.addTest(TestNNS("test_icp_under_translation"))
     suite.addTest(TestNNS("test_large_icp_under_rotation"))
     suite.addTest(TestNNS("test_large_icp_under_rotation_and_translation"))
