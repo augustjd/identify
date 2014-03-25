@@ -3,7 +3,7 @@
 from objfile import *
 from sys import argv
 import numpy as np
-from nns import *
+from identify import *
 import unittest
 
 class TestNumpyArray(unittest.TestCase):
