@@ -10,7 +10,7 @@ def clamp(val, low, high):
     """Clamps val to the range [low, high]."""
     return max(min(val, high), low)
 
-class RegistrationAlgorithm:
+class RegistrationAlgorithm(object):
     def __init__(self, source_mesh, destination_mesh):
         assert(isinstance(source_mesh, TriMesh) and 
                isinstance(destination_mesh, TriMesh))
