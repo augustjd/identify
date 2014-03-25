@@ -2,6 +2,10 @@ import numpy as np
 import math
 from operator import add
 
+def dist(P,Q):
+    """Returns the L2 distance between points P and Q."""
+    return np.linalg.norm(P - Q, 2)
+
 def unit_vector(v):
     return v / np.linalg.norm(v, 2)
 
@@ -39,7 +43,7 @@ def bounding_box(P):
 
 def estimate_max_diagonal(P):
     """Estimates the longest distance between two points
-    in the point set P in linear time, by computing the center of mass,
+    in the point set P in O(n), by computing the center of mass,
     then finding the point farthest away from the COM, then finding
     the point farthest away from that point, and returning the distance
     between these two points."""
