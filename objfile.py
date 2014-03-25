@@ -57,6 +57,8 @@ def save_obj_file(path, header, points, footer):
         print e
         return None
 
+    return True
+
 
 if __name__ == "__main__":
     if len(argv) > 1:
