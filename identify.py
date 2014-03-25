@@ -3,28 +3,37 @@
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
 
+def print_usage():
+    print "Usage: {0} [flags] <source_file> <destination_file> <point_set_file> <output_file>".format(
+            argv[0]
+            )
+    print "Supported Flags"
+    print "\t-h:\t\t\tprints this help message, then exits."
+    print
+    print "\t-m:\t\t\tmesh output mode - instead of a point set file, save the"
+    print "\t\t\t\tentire cloud under the mapping as a .obj file to <output_file>"
+    print
+    print ("\t-i [s-index] [d-index]:\tensure that the mapping identifies the " +
+        "point of index s-index on")
+    print "\t\t\t\tS and of d-index on D. By default,the centers of mass of S "
+    print "\t\t\t\tand D are identified."
+    print
+    print "\t-v:\t\t\tverbose output mode"
+    print
+    print "\t--convergence=[val]:\trun identification until matching confidence exceeds val (default: 0.1)"
+    print
+    print ("\t--algorithm=[val]:\tuse specified algorithm to perform " +
+            "registration (default: icp).")
+    print "\t\t\t\tvalid options: icp"
+
+
 if __name__ == "__main__":
     from sys import *
-    if len(argv) < 4:
-        print "Usage: {0} [flags] <source_file> <destination_file> <point_set_file> <output_file>".format(
-                argv[0]
-                )
-        print "Supported Flags"
-        print "\t-m:\t\t\tmesh output mode - instead of a point set file, save the"
-        print "\t\t\t\tentire cloud under the mapping as a .obj file to <output_file>"
-        print
-        print ("\t-i [s-index] [d-index]:\tensure that the mapping identifies the" +
-            "point of index s-index")
-        print "\t\t\t\tS and of d-index on D. By default,the centers of mass of S "
-        print "\t\t\t\tand D are identified."
-        print
-        print "\t-v:\t\t\tverbose output mode"
-        print
-        print "\t--convergence=[val]:\trun identification until matching confidence "
-        print "\t\t\t\texceeds val (default 0.1)"
-        exit(0)
-
     flags = argv[:-3]
+
+    if len(argv) < 4 or "-h" in flags:
+        print_usage()
+        exit(0)
 
     if "-v" in flags:
         print "Verbose."
