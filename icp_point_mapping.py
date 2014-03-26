@@ -22,8 +22,15 @@ class IcpAlgorithm(RegistrationAlgorithm):
                  max_iterations = 100):
         super(IcpAlgorithm, self).__init__(source_mesh, destination_mesh)
 
-        self.source_fixed      = source_mesh.vs[source_fixed_index]
-        self.destination_fixed = source_mesh.vs[destination_fixed_index]
+        if source_fixed_index is None:
+            self.source_fixed = None
+        else:
+            self.source_fixed = source_mesh.vs[source_fixed_index]
+
+        if destination_fixed_index is None: 
+            self.destination_fixed = None
+        else:
+            self.destination_fixed = source_mesh.vs[destination_fixed_index]
 
         print "Identifying points Source: {0} Destination: {1}".format(
                     self.source_fixed, self.destination_fixed
@@ -47,7 +54,7 @@ class IcpAlgorithm(RegistrationAlgorithm):
     def transform(self, source_point):
         assert(self.matrix is not None)
         # No reason to assume this point is better or worse # than the whole mapping, so return confidence of 1.0
-        return np.dot(self.matrix, source_point), 1.0
+        return apply_transform(self.matrix, source_point), 1.0
 
 EPSILON = 0.01
 
@@ -132,7 +139,7 @@ def optimal_rotation_matrix(P, X, P_nearest_neighbors = None, up = None, ux = No
     # so make it a rotation matrix
     return promote(quaternion_to_rotation_matrix(unit_vector(max_eigenvector)))
 
-def optimal_matricies(P, X, P_nearest_neighbors = None, up = None, ux = None):
+def optimal_matrices(P, X, P_nearest_neighbors = None, up = None, ux = None):
     """Returns the optimal rotation and translation matricies for
     rigidly transforming X to match P, and also identifies points up and ux."""
     rot = optimal_rotation_matrix(P, X, P_nearest_neighbors, up, ux)
@@ -185,8 +192,8 @@ class IcpState:
 
     def apply_transform_to_all(self, transform):
         self.global_matrix = np.dot(transform, self.global_matrix)
-        self.X_copy        = apply_transform(transform, self.X_copy)
-        self.ux            = apply_transform(transform, self.ux)
+        self.X_copy        = apply_transform(transform, self.X_copy, 3)
+        self.ux            = apply_transform(transform, self.ux, 3)
 
     def sample(self):
         if len(self.X_copy) > len(self.P):
@@ -226,7 +233,7 @@ def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = 
         # each iteration.
         X_sample = state.sample()
 
-        rot, tr = optimal_matricies(P, X_sample, P_nearest_neighbors, state.up, state.ux)
+        rot, tr = optimal_matrices(P, X_sample, P_nearest_neighbors, state.up, state.ux)
 
         # for column vectors on right, rotate, then translate
         matrix = np.dot(tr, rot)
