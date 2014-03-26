@@ -841,12 +841,9 @@ class TriMesh( object ):
             if not sline: continue
             
             elif sline[0] == 'v':
-                # NOTE: an unslick hack
-                sline.append("1.0")
-
                 result.vs.append( asarrayf( map( float, sline[1:] ) ) )
-                ## Vertices must have FOUR coordinates.
-                assert len( result.vs[-1] ) == 4
+                ## Vertices must have three coordinates.
+                assert len( result.vs[-1] ) == 3
             
             elif sline[0] == 'f':
                 ## The split('/')[0] means we record only the vertex coordinate indices
