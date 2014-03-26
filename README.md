@@ -67,11 +67,23 @@ actual points on *D*, even if the correspondence is incorrect.
 Usage
 -----
 ```
-./identify.py <path to .obj of S model> <path to .obj of D model> <path to point set Q> <path to output point set file>
+./identify.py [flags] <path to .obj of S model> <path to .obj of D model> <path to point set Q> <path to output point set file>
 ```
 Source and destination files should be in standard `.obj` format. Point set
 *Q* should be in the format specified above, and the output file will be in
 the output format specified above.
+
+Flags
+-----
+
+Flag|Use
+----|---
+-h:|prints this help message, then exits.
+-m:|mesh output mode - instead of a point set file, save the entire cloud under the mapping as a .obj file to &lt;output&#96;file&gt;
+-i [s-index] [d-index]:|ensure that the mapping identifies the int of index s-index on S and of d-index on D. By default, the centers of mass of S and D are identified.
+-v:|verbose output mode
+--convergence=[val]:|run identification until matching confidence exceeds val (default: 0.1)
+--algorithm=[val]:|use specified algorithm to perform registration (default: icp).  valid options: icp
 
 Examples
 --------
