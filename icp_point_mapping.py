@@ -46,8 +46,7 @@ class IcpAlgorithm(RegistrationAlgorithm):
 
     def transform(self, source_point):
         assert(self.matrix is not None)
-        # No reason to assume this point is better or worse
-        # than the whole mapping, so return confidence of 1.0
+        # No reason to assume this point is better or worse # than the whole mapping, so return confidence of 1.0
         return np.dot(self.matrix, source_point), 1.0
 
 EPSILON = 0.01
@@ -182,13 +181,12 @@ class IcpState:
         self.X_copy        = np.copy(X)
 
         self.ux            = ux.copy()
-        self.initial_ux    = ux.copy()
         self.up            = up
 
     def apply_transform_to_all(self, transform):
-        self.global_matrix = np.dot(self.global_matrix, transform)
-        self.X_copy        = apply_transform(self.global_matrix, self.X_copy)
-        self.ux            = apply_transform(self.global_matrix, self.initial_ux)
+        self.global_matrix = np.dot(transform, self.global_matrix)
+        self.X_copy        = apply_transform(transform, self.X_copy)
+        self.ux            = apply_transform(transform, self.ux)
 
     def sample(self):
         if len(self.X_copy) > len(self.P):
@@ -200,7 +198,6 @@ class IcpState:
     def error(self):
         return mean_square_error(self.P, self.X_copy)
 
-VERBOSE = True
 def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = None):
     """Returns the transformation matrix to take the point cloud X to the
     point cloud P by rigid transformation. If up and ux are specified, rotations
@@ -263,7 +260,6 @@ def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = 
 
         if last_error < CONVERGENCE_THRESHOLD:
             break
-
 
     print "Lowest Mean Squared Error:", lowest_error
     return best_global_matrix, lowest_error
