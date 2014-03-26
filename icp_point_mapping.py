@@ -18,12 +18,16 @@ from objfile import *
 
 class IcpAlgorithm(RegistrationAlgorithm):
     def __init__(self, source_mesh, destination_mesh, 
-                 source_fixed = None, destination_fixed = None, 
+                 source_fixed_index = None, destination_fixed_index = None, 
                  max_iterations = 100):
         super(IcpAlgorithm, self).__init__(source_mesh, destination_mesh)
 
-        self.source_fixed      = source_fixed
-        self.destination_fixed = destination_fixed
+        self.source_fixed      = source_mesh.vs[source_fixed_index]
+        self.destination_fixed = source_mesh.vs[destination_fixed_index]
+
+        print "Identifying points Source: {0} Destination: {1}".format(
+                    self.source_fixed, self.destination_fixed
+                )
 
         self.matrix = None
 
@@ -133,7 +137,11 @@ def optimal_matricies(P, X, P_nearest_neighbors = None, up = None, ux = None):
     """Returns the optimal rotation and translation matricies for
     rigidly transforming X to match P, and also identifies points up and ux."""
     rot = optimal_rotation_matrix(P, X, P_nearest_neighbors, up, ux)
-    return rot, translation_matrix(up - np.dot(rot, ux))
+    tr  = translation_matrix(up - np.dot(rot, ux))
+
+    assert(np.allclose(up, np.dot(tr, np.dot(rot, ux))))
+
+    return rot, tr
 
 def mean_square_error(P, X):
     """Returns the sum of the L2 norms between closest points on P and X,
@@ -145,7 +153,7 @@ def mean_square_error(P, X):
     return error / len(P)
 
 
-DO_SHAKE = True
+DO_SHAKE = False
 SHAKE_AMOUNT = 1.5
 SHAKE_THRESHOLD = 1e-6
 
@@ -173,13 +181,14 @@ class IcpState:
         self.P             = P
         self.X_copy        = np.copy(X)
 
-        self.ux            = ux
+        self.ux            = ux.copy()
+        self.initial_ux    = ux.copy()
         self.up            = up
 
     def apply_transform_to_all(self, transform):
         self.global_matrix = np.dot(self.global_matrix, transform)
         self.X_copy        = apply_transform(self.global_matrix, self.X_copy)
-        self.ux            = apply_transform(self.global_matrix, self.ux)
+        self.ux            = apply_transform(self.global_matrix, self.initial_ux)
 
     def sample(self):
         if len(self.X_copy) > len(self.P):
@@ -191,7 +200,7 @@ class IcpState:
     def error(self):
         return mean_square_error(self.P, self.X_copy)
 
-
+VERBOSE = True
 def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = None):
     """Returns the transformation matrix to take the point cloud X to the
     point cloud P by rigid transformation. If up and ux are specified, rotations
@@ -207,31 +216,29 @@ def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = 
 
     state = IcpState(P, X, ux, up)
 
-    last_error   = state.error()
-    lowest_error = last_error
-
     state.apply_transform_to_all(scaling_step(P, X))
 
     best_global_matrix = state.global_matrix
 
-    for x in range(max_iterations):
-        if last_error < CONVERGENCE_THRESHOLD:
-            break
+    last_error   = state.error()
+    lowest_error = float('+inf')
 
+    for x in range(max_iterations):
         # if X has more points than P,
         # randomly subsample from X, differently
         # each iteration.
         X_sample = state.sample()
 
-        rot, tr = optimal_matricies(P, X_sample, P_nearest_neighbors, up, ux)
+        rot, tr = optimal_matricies(P, X_sample, P_nearest_neighbors, state.up, state.ux)
 
         # for column vectors on right, rotate, then translate
         matrix = np.dot(tr, rot)
 
         state.apply_transform_to_all(matrix)
 
-        ## ensures that ux remains close to up
-        #assert(np.allclose(center_of_mass(X_copy), up))
+        # ensures that ux remains close to up
+        #print "up {0} ux {1}".format(state.up, state.ux)
+        #assert(np.allclose(state.ux, state.up, 1e-2))
 
         current_error = state.error()
 
@@ -244,8 +251,8 @@ def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = 
             state.apply_transform_to_all(shake)
 
         if VERBOSE:
-            print "Iteration {0:>3}: Last Error: {1:f} Lowest Error {2:f}".format(
-                    x, last_error, lowest_error
+            print "Iteration {0:>3}: Last Error: {1:f} Lowest Error {2:f} up->ux distance {3}".format(
+                    x, last_error, lowest_error, dist(state.up, state.ux)
                     )
 
         if current_error < lowest_error:
@@ -253,6 +260,10 @@ def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = 
             best_global_matrix = state.global_matrix
 
         last_error    = current_error
+
+        if last_error < CONVERGENCE_THRESHOLD:
+            break
+
 
     print "Lowest Mean Squared Error:", lowest_error
     return best_global_matrix, lowest_error
@@ -269,6 +280,10 @@ def identify_points(P, X, P_nearest_neighbors = None):
     distances, indices = P_nearest_neighbors.kneighbors(X)
 
     max_dist = max(distances)
+
+    if max_dist == 0:
+        max_dist = 1e-6
+
     scaled_distances = [d / max_dist for d in distances]
     # make an array of pairs (pi, xi) for each xi in X, such that
     # for xi, pi is the closest point to xi in P.

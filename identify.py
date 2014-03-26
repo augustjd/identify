@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
 def icp_and_output_to_mesh(source_path, destination_path, output_path):
     source_file_array = load_obj_file(source_path)
-    print "Loaded {0} as {1} points.".format(source_path, len(source_file_array[1]))
+    print "Loaded {0} as {1} points.".format(source_path, len(source_file_array[1])) 
     destination_mesh  = load_obj_file(destination_path)[1]
     print "Loaded {0} as {1} points.".format(destination_path, len(destination_mesh))
 
