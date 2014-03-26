@@ -115,7 +115,7 @@ class PointMapping:
         try:
             with open(path, "r") as f:
                 for i, line in enumerate(f.readlines()):
-                    splits = line.split(" ")
+                    splits = line.split()
                     try:
                         label  = splits[0]
                         source = np.array([float(splits[1]), 
@@ -124,7 +124,7 @@ class PointMapping:
 
                         points.append(PointMapping(label, source))
 
-                    except IndexError as err:
+                    except Exception as err:
                         print "Failed to parse line {0}: '{1}'".format(i, line)
 
         except Exception as err:

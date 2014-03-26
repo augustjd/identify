@@ -7,7 +7,6 @@ between two point clouds.
 """
 
 from point_mapping import *
-from identify import *
 import numpy as np
 from geometry import *
 import cv2
@@ -33,8 +32,8 @@ class IcpAlgorithm(RegistrationAlgorithm):
     def run(self):
         """Calls icp(), which takes a long time, to find the registration
         between the two meshes."""
-        self.matrix, self.global_confidence = icp(self.source_mesh,  
-                                                  self.destination_mesh, 
+        self.matrix, self.global_confidence = icp(self.source_mesh.vs,  
+                                                  self.destination_mesh.vs, 
                                                   self.source_fixed, 
                                                   self.destination_fixed,
                                                   self.max_iterations)
@@ -204,7 +203,7 @@ def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = 
     if P_nearest_neighbors == None:
         P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(P)
 
-    state = IcpState(P, X, ux)
+    state = IcpState(P, X, ux, up)
 
     last_error   = state.error()
     lowest_error = last_error
