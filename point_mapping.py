@@ -45,16 +45,16 @@ class RegistrationAlgorithm(object):
         mapping.destination, distance           = self.project(mapping.destination)
 
         mapping.confidence *= self.get_confidence_of_projection(distance)
-
         mapping.confidence *= self.global_confidence
 
     def project(self, source_point):
         """Finds the closest point on the destination mesh for the given
         source_point, and returns the projected point as well as the distance
         to that point."""
-        projected_point = self.destination_nearest_neighbors.kneighbors(
-                              np.array(source_point)
-                          )
+        projected_point_index = self.destination_nearest_neighbors.kneighbors(
+                                    source_point
+                                )[1][0][0]
+        projected_point = self.destination_mesh.vs[projected_point_index]
 
         return projected_point, dist(projected_point, source_point)
 
@@ -120,7 +120,8 @@ class PointMapping:
                         label  = splits[0]
                         source = np.array([float(splits[1]), 
                                            float(splits[2]), 
-                                           float(splits[3])])
+                                           float(splits[3]), 
+                                           1.0])
 
                         points.append(PointMapping(label, source))
 

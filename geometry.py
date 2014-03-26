@@ -9,7 +9,7 @@ from operator import add
 
 def dist(p, q):
     """Returns the L2 distance between points p and q."""
-    return np.linalg.norm(p - q, 2)
+    return np.linalg.norm((p - q), 2)
 
 def unit_vector(v):
     """Provided a vector v, returns the unit vector pointing

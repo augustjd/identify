@@ -32,11 +32,13 @@ class IcpAlgorithm(RegistrationAlgorithm):
     def run(self):
         """Calls icp(), which takes a long time, to find the registration
         between the two meshes."""
-        self.matrix, self.global_confidence = icp(self.source_mesh.vs,  
-                                                  self.destination_mesh.vs, 
-                                                  self.source_fixed, 
-                                                  self.destination_fixed,
-                                                  self.max_iterations)
+        self.matrix, error = icp(self.source_mesh.vs,  
+                                 self.destination_mesh.vs, 
+                                 self.source_fixed, 
+                                 self.destination_fixed,
+                                 self.max_iterations)
+        self.global_confidence = 1 - error
+        print self.global_confidence
 
     def transform(self, source_point):
         assert(self.matrix is not None)
