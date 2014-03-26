@@ -93,8 +93,17 @@ if __name__ == "__main__":
         ux_index = int(index_args[0]) # source
         up_index = int(index_args[1]) # destination
 
-    source_mesh      = TriMesh.FromOBJ_FileName(argv[-4])
-    destination_mesh = TriMesh.FromOBJ_FileName(argv[-3])
+    try:
+        source_mesh      = TriMesh.FromOBJ_FileName(argv[-4])
+    except AssertionError:
+        print "Failed to load source: Something is wrong with the source mesh."
+        exit(0)
+
+    try:
+        destination_mesh = TriMesh.FromOBJ_FileName(argv[-3])
+    except AssertionError:
+        print "Failed to load source: Something is wrong with the source mesh."
+        exit(0)
 
     if "-m" in flags:
         print "Mesh output mode."
@@ -124,39 +133,3 @@ if __name__ == "__main__":
             algo.register(mapping)
 
         PointMapping.to_file(argv[-1], mappings)
-        
-
-
-def icp_and_output_to_mesh(source_path, destination_path, output_path):
-    source_file_array = load_obj_file(source_path)
-    print "Loaded {0} as {1} points.".format(source_path, len(source_file_array[1])) 
-    destination_mesh  = load_obj_file(destination_path)[1]
-    print "Loaded {0} as {1} points.".format(destination_path, len(destination_mesh))
-
-    source_mesh = source_file_array[1]
-
-    P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(destination_mesh)
-    transform = icp(destination_mesh, source_mesh, None, None, P_nearest_neighbors)[0]
-
-    source_mesh = apply_transform(transform, source_mesh)
- 
-    if save_obj_file(output_path, 
-                     source_file_array[0], 
-                     source_mesh,
-                     source_file_array[2]):
-        print "Saved output to file '{0}'.".format(output_path)
-    else:
-        print "Failed to output to file '{0}'.".format(output_path)
-
-def icp_and_output_point_file(source_path, destination_path,
-                              point_set_file_path, output_path):
-
-    source_file_array = load_obj_file(source_path)
-    print "Loaded {0} as {1} points.".format(source_path, len(source_file_array[1]))
-    destination_mesh  = load_obj_file(destination_path)[1]
-    print "Loaded {0} as {1} points.".format(destination_path, len(destination_mesh))
-
-    source_mesh = source_file_array[1]
-
-    P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(destination_mesh)
-    transform, error = icp(destination_mesh, source_mesh, None, None, P_nearest_neighbors)[0]
