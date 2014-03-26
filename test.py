@@ -83,7 +83,7 @@ class TestNNS(TestNumpyArray):
                                   [1,0,0,1],
                                   [0,1,0,1]])
 
-        self.stuff = load_obj_file("./obj/shorts1vertex70.obj")
+        self.stuff = load_obj_file("../obj/shorts1vertex70.obj")
         self.large = self.stuff[1]
 
     def test_icp_under_identity(self):
@@ -123,12 +123,12 @@ class TestNNS(TestNumpyArray):
         print "Predicted:"
         print result
 
-        save_obj_file("./obj/shorts1vertex70transformed.obj", self.stuff[0], transformed, self.stuff[2])
-        save_obj_file("./obj/shorts1vertex70predicted.obj", self.stuff[0], apply_transform(result.T, self.large.copy()), self.stuff[2])
+        # save_obj_file("./obj/shorts1vertex70transformed.obj", self.stuff[0], transformed, self.stuff[2])
+        # save_obj_file("./obj/shorts1vertex70predicted.obj", self.stuff[0], apply_transform(result.T, self.large.copy()), self.stuff[2])
         self.assertArraysApproximatelyEqual(result.T, transform)
 
     def test_large_icp_under_rotation_and_translation(self):
-        self.test_cloud_under_transformation(self.large, np.array([1,1,1,0]), [0.9,10,0])
+        self.test_cloud_under_transformation(self.large, np.array([1,1,1,0]), [0.9,1,0])
 
     def test_cloud_under_transformation(self, cloud, translation, rotation):
         transform = np.dot(promote(rotation_matrix(rotation[0], rotation[1], rotation[2])), translation_matrix(translation))
@@ -149,6 +149,23 @@ class TestNNS(TestNumpyArray):
         print apply_transform(result, cloud.copy())
 
         self.assertArraysApproximatelyEqual(result, transform)
+
+TEST_TRIMESH = "./testdata/40.obj"
+class TrimeshTest(TestNumpyArray):
+    def setUp(self):
+        self.mesh = TriMesh.FromOBJ_FileName(TEST_TRIMESH)
+        pass
+
+    def test_trimesh_transform_function(self):
+        test = self.mesh.copy()
+
+        translate = np.array([1,0,0])
+        transform_trimesh(test, lambda p: p + translate)
+
+        M = translation_matrix(translate)
+        affine_transform_trimesh(test, M)
+
+        self.assertArraysApproximatelyEqual(test.vs[0], self.mesh.vs[0] + 2*translate)
         
 if __name__ == "__main__":
     np.set_printoptions(suppress=True)
@@ -168,5 +185,7 @@ if __name__ == "__main__":
     #suite.addTest(TestNNS("test_icp_under_translation"))
     suite.addTest(TestNNS("test_large_icp_under_rotation"))
     suite.addTest(TestNNS("test_large_icp_under_rotation_and_translation"))
+
+    suite.addTest(TrimeshTest("test_trimesh_transform_function"))
 
     unittest.TextTestRunner(verbosity=2).run(suite)

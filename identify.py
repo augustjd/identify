@@ -12,7 +12,8 @@ def print_usage():
     print "\t-h:\t\t\tprints this help message, then exits."
     print
     print "\t-m:\t\t\tmesh output mode - instead of a point set file, save the"
-    print "\t\t\t\tentire cloud under the mapping as a .obj file to <output_file>"
+    print "\t\t\t\tentire cloud under the mapping as a .obj file to <output_file>."
+    print "\t\t\t\t<point_set_file> must be present, but will be ignored."
     print
     print ("\t-i [s-index] [d-index]:\tensure that the mapping identifies the " +
         "point of index s-index on")
@@ -96,7 +97,19 @@ if __name__ == "__main__":
     destination_mesh = TriMesh.FromOBJ_FileName(argv[-3])
 
     if "-m" in flags:
-        icp_and_output_to_mesh(argv[-4], argv[-3], argv[-1])
+        print "Mesh output mode."
+        algo = VALID_ALGORITHMS[algorithm_name](
+            source_mesh, destination_mesh,
+            ux_index, up_index
+        )
+
+        algo.run()
+
+        transformed = algo.transformed_mesh()
+        print "Finished transformation."
+
+        transformed.write_OBJ(argv[-1])
+        print "Wrote mesh to '{0}'.".format(argv[-1])
     else: # default mode
         algo = VALID_ALGORITHMS[algorithm_name](
             source_mesh, destination_mesh,

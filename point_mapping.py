@@ -4,7 +4,7 @@ from sklearn.neighbors import NearestNeighbors
 import numpy as np 
 
 from trimesh import TriMesh
-from geometry import dist, estimate_max_diagonal
+from geometry import dist, estimate_max_diagonal, transform_trimesh
 
 def clamp(val, low, high):
     """Clamps val to the range [low, high]."""
@@ -65,6 +65,18 @@ class RegistrationAlgorithm(object):
         raw = 1.0 - (distance / self.destination_longest_diagonal)**(tolerance)
         return clamp(raw, 0.0, 1.0)
 
+    def transformed_mesh(self):
+        """Transforms a copy of the source_mesh by the transformation."""
+        result = self.source_mesh.copy()
+
+        # but transform returns a tuple, so...
+        def one_return_transform(x):
+            return self.transform(x)[0]
+
+        transform_trimesh(result, one_return_transform)
+
+        return result
+
 class PointMapping:
     """Encapsulates the mapping of a point of interest to another point of
     interest, for use in recording the output of registration algorithms."""
@@ -120,8 +132,7 @@ class PointMapping:
                         label  = splits[0]
                         source = np.array([float(splits[1]), 
                                            float(splits[2]), 
-                                           float(splits[3]), 
-                                           1.0])
+                                           float(splits[3])])
 
                         points.append(PointMapping(label, source))
 

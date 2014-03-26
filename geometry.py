@@ -122,9 +122,15 @@ def promote(M, w = 1):
 
     return A
 
-def apply_transform(M, X):
-    """Apply the matrix M to all the vectors in X, which are row vectors."""
-    return np.dot(M, X.T).T
+def apply_transform(M, X, cols = 4):
+    """Apply the matrix M to all the vectors in X, which are row vectors.
+    Conveniently, it will apply M even if M is affine and X is comprised
+    of 3x1 vectors, using decompose_affine()."""
+    if   cols == 3:
+        A, b = decompose_affine(M)
+        return np.dot(A, X.T).T + b
+    elif cols == 4:
+        return np.dot(M, X.T).T
 
 def quaternion_to_rotation_matrix(q):
     """Returns a 3x3 matrix for rotation in R3 corresponding to the quaternion
@@ -142,3 +148,17 @@ def compose(*args):
     """Composes input matrices into a single matrix by multiplying them
     together from left to right."""
     return reduce(np.dot, args)
+
+def decompose_affine(M):
+    """Returns a tuple, 3x3 rotation matrix A and 3x1 vector b, such that
+    Ax+b for 3x1 vector x will result in the same vector as M*[x0 x1 x2 1]."""
+    return M[0:3, 0:3].copy(), M[0:3, 3].copy()
+
+def affine_transform_trimesh(mesh, M):
+    return transform_trimesh(mesh, lambda p: apply_transform(M, p, 3))
+
+def transform_trimesh(mesh, func):
+    for i, vertex in enumerate(mesh.vs):
+        mesh.vs[i] = func(vertex)
+
+    mesh.positions_changed()

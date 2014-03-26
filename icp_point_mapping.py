@@ -54,7 +54,7 @@ class IcpAlgorithm(RegistrationAlgorithm):
     def transform(self, source_point):
         assert(self.matrix is not None)
         # No reason to assume this point is better or worse # than the whole mapping, so return confidence of 1.0
-        return apply_transform(self.matrix, source_point), 1.0
+        return apply_transform(self.matrix, source_point, len(source_point)), 1.0
 
 EPSILON = 0.01
 
@@ -143,9 +143,9 @@ def optimal_matrices(P, X, P_nearest_neighbors = None, up = None, ux = None):
     """Returns the optimal rotation and translation matricies for
     rigidly transforming X to match P, and also identifies points up and ux."""
     rot = optimal_rotation_matrix(P, X, P_nearest_neighbors, up, ux)
-    tr  = translation_matrix(up - np.dot(rot, ux))
+    tr  = translation_matrix(up - apply_transform(rot, ux, len(ux)))
 
-    assert(np.allclose(up, np.dot(tr, np.dot(rot, ux))))
+    assert(np.allclose(up, apply_transform(tr, apply_transform(rot, ux, len(ux)), len(ux))))
 
     return rot, tr
 
