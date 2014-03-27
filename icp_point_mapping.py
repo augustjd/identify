@@ -157,6 +157,16 @@ SHAKE_THRESHOLD = 1e-6
 
 VERBOSE = True
 
+DO_FLIP = False
+
+def get_flip_matrix():
+    """Returns a matrix which flips the mesh about X,
+    because it really doesn't matter."""
+    flip = np.identity(4)
+    flip[0,0] = -1
+
+    return flip
+
 def get_shake_matrix(rotate_amt = SHAKE_AMOUNT, translate_amt = SHAKE_AMOUNT):
     """Returns an affine matrix, comprised of a random rotation and
     translation, that can be used to try and shake the icp out of a local
@@ -207,6 +217,8 @@ def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = 
     point cloud P by rigid transformation. If up and ux are specified, rotations
     and translations are relative to up on P and ux on X, which remain fixed in the
     transformation."""
+    global DO_SHAKE, DO_FLIP
+
     if up == None:
         up = center_of_mass(P)
     if ux == None:
@@ -251,6 +263,14 @@ def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = 
             
             shake = get_shake_matrix()
             state.apply_transform_to_all(shake)
+
+            
+            if DO_FLIP:
+                flip  = get_flip_matrix()
+                state.apply_transform_to_all(flip)
+                print "Also flipping."
+
+                DO_FLIP = False
 
         if VERBOSE:
             print "Iteration {0:>3}: Last Error: {1:f} Lowest Error {2:f} up->ux distance {3}".format(

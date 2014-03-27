@@ -121,6 +121,7 @@ if __name__ == "__main__":
         transformed.write_OBJ(argv[-1], "mtllib default.mtl\nusemtl defaultred")
 
         print "Wrote mesh to '{0}'.".format(argv[-1])
+        print "Compare with '{0}'.".format(argv[-3])
 
     else: # default mode
         algo = VALID_ALGORITHMS[algorithm_name](

@@ -181,4 +181,4 @@ def nearest_neighbor_sampling_error(P, X, P_nearest_neighbors, sample_size = 100
 
     distances, indices = P_nearest_neighbors.kneighbors(sample)
 
-    return reduce(lambda arr, y: arr[0] + y, distances)[0]
+    return reduce(lambda arr, y: arr[0] + y, distances)[0] / sample_size
