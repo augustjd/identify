@@ -30,7 +30,7 @@ class IcpAlgorithm(RegistrationAlgorithm):
         if destination_fixed_index is None: 
             self.destination_fixed = center_of_mass(destination_mesh.vs)
         else:
-            self.destination_fixed = source_mesh.vs[destination_fixed_index]
+            self.destination_fixed = destination_mesh.vs[destination_fixed_index]
 
         print "Identifying points Source: {0} Destination: {1}".format(
                     self.source_fixed, self.destination_fixed
@@ -161,7 +161,7 @@ def mean_square_error(P, X):
     return error / len(P)
 
 
-DO_SHAKE = True
+DO_SHAKE = False
 SHAKE_AMOUNT = 5.5
 SHAKE_THRESHOLD = 1e-6
 
