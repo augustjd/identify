@@ -161,7 +161,7 @@ def mean_square_error(P, X):
     return error / len(P)
 
 
-DO_SHAKE = False
+DO_SHAKE = True
 SHAKE_AMOUNT = 5.5
 SHAKE_THRESHOLD = 1e-6
 
