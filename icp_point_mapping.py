@@ -23,12 +23,12 @@ class IcpAlgorithm(RegistrationAlgorithm):
         super(IcpAlgorithm, self).__init__(source_mesh, destination_mesh)
 
         if source_fixed_index is None:
-            self.source_fixed = None
+            self.source_fixed = center_of_mass(source_mesh.vs)
         else:
             self.source_fixed = source_mesh.vs[source_fixed_index]
 
         if destination_fixed_index is None: 
-            self.destination_fixed = None
+            self.destination_fixed = center_of_mass(destination_mesh.vs)
         else:
             self.destination_fixed = source_mesh.vs[destination_fixed_index]
 
@@ -48,13 +48,15 @@ class IcpAlgorithm(RegistrationAlgorithm):
                                  self.source_fixed, 
                                  self.destination_fixed,
                                  self.max_iterations)
+
+        self.inverse = np.linalg.inv(self.matrix)
         self.global_confidence = 1 - error
         print self.global_confidence
 
     def transform(self, source_point):
-        assert(self.matrix is not None)
+        assert(self.inverse is not None)
         # No reason to assume this point is better or worse # than the whole mapping, so return confidence of 1.0
-        return apply_transform(self.matrix, source_point, len(source_point)), 1.0
+        return apply_transform(self.inverse, source_point, len(source_point)), 1.0
 
 EPSILON = 0.01
 
@@ -159,11 +161,11 @@ def mean_square_error(P, X):
     return error / len(P)
 
 
-DO_SHAKE = False
-SHAKE_AMOUNT = 1.5
+DO_SHAKE = True
+SHAKE_AMOUNT = 5.5
 SHAKE_THRESHOLD = 1e-6
 
-VERBOSE = False
+VERBOSE = True
 
 def get_shake_matrix(rotate_amt = SHAKE_AMOUNT, translate_amt = SHAKE_AMOUNT):
     """Returns an affine matrix, comprised of a random rotation and
@@ -242,7 +244,8 @@ def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = 
 
         # ensures that ux remains close to up
         #print "up {0} ux {1}".format(state.up, state.ux)
-        #assert(np.allclose(state.ux, state.up, 1e-2))
+        #print "COM P: {0} COM X: {1}".format(center_of_mass(P), center_of_mass(state.X_copy))
+        assert(np.allclose(state.ux, state.up, 1e-6))
 
         current_error = state.error()
 
