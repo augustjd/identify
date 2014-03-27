@@ -903,7 +903,7 @@ class TriMesh( object ):
         
         ## Print the header comment.
         for line in header_comment.split('\n'):
-            out.write( '## %s\n' % (line,) )
+            out.write( '%s\n' % (line,) )
         out.write( '\n' )
         
         
