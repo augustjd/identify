@@ -151,16 +151,6 @@ def optimal_matrices(P, X, P_nearest_neighbors = None, up = None, ux = None):
 
     return rot, tr
 
-def mean_square_error(P, X):
-    """Returns the sum of the L2 norms between closest points on P and X,
-    measuring the difference between the two point clouds."""
-    error = 0.0
-    for i in range(min([len(P), len(X)])):
-        error += dist(P[i], X[i]) # L2 norm, see geometry.py
-
-    return error / len(P)
-
-
 DO_SHAKE = True
 SHAKE_AMOUNT = 5.5
 SHAKE_THRESHOLD = 1e-6
@@ -184,13 +174,15 @@ def get_shake_matrix(rotate_amt = SHAKE_AMOUNT, translate_amt = SHAKE_AMOUNT):
 class IcpState:
     """Groups together data and simple functions to allow a cleaner icp()
     function."""
-    def __init__(self, P, X, ux, up):
+    def __init__(self, P, X, ux, up, P_nearest_neighbors):
         self.global_matrix = np.identity(4)
         self.P             = P
         self.X_copy        = np.copy(X)
 
         self.ux            = ux.copy()
         self.up            = up
+
+        self.P_nearest_neighbors = P_nearest_neighbors
 
     def apply_transform_to_all(self, transform):
         self.global_matrix = np.dot(transform, self.global_matrix)
@@ -205,7 +197,10 @@ class IcpState:
 
 
     def error(self):
-        return mean_square_error(self.P, self.X_copy)
+        return nearest_neighbor_sampling_error(
+                self.P, self.X_copy, self.P_nearest_neighbors
+                )
+        # return mean_square_error(self.P, self.X_copy)
 
 def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = None):
     """Returns the transformation matrix to take the point cloud X to the
@@ -220,7 +215,7 @@ def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = 
     if P_nearest_neighbors == None:
         P_nearest_neighbors = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(P)
 
-    state = IcpState(P, X, ux, up)
+    state = IcpState(P, X, ux, up, P_nearest_neighbors)
 
     state.apply_transform_to_all(scaling_step(P, X))
 

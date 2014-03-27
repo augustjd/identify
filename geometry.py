@@ -162,3 +162,23 @@ def transform_trimesh(mesh, func):
         mesh.vs[i] = func(vertex)
 
     mesh.positions_changed()
+
+def mean_square_error(P, X):
+    """Returns the sum of the L2 norms between equal-indiced points on P and
+    X, approximating the difference between the two point clouds.""" 
+    error = 0.0
+    for i in range(min(len(P), len(X))):
+        error += dist(P[i], X[i]) # L2 norm, see geometry.py
+
+    return error / len(P)
+
+def nearest_neighbor_sampling_error(P, X, P_nearest_neighbors, sample_size = 1000):
+    """Returns the sum of the L2 norms between a subset of closest points on P and X,
+    estimating the difference between the two point clouds.""" 
+    import random
+    sample_size = min(len(X), sample_size)
+    sample      = np.array(random.sample(X, sample_size))
+
+    distances, indices = P_nearest_neighbors.kneighbors(sample)
+
+    return reduce(lambda arr, y: arr[0] + y, distances)[0]
