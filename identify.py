@@ -117,8 +117,11 @@ if __name__ == "__main__":
         transformed = algo.transformed_mesh()
         print "Finished transformation."
 
-        transformed.write_OBJ(argv[-1])
+        # use the red texture that's already in testdata/
+        transformed.write_OBJ(argv[-1], "mtllib default.mtl\nusemtl defaultred")
+
         print "Wrote mesh to '{0}'.".format(argv[-1])
+
     else: # default mode
         algo = VALID_ALGORITHMS[algorithm_name](
             source_mesh, destination_mesh,
