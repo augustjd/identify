@@ -4,7 +4,7 @@ from sklearn.neighbors import NearestNeighbors
 import numpy as np 
 
 from trimesh import TriMesh
-from geometry import dist, estimate_max_diagonal, transform_trimesh
+from geometry import dist, estimate_max_diagonal, transform_trimesh, center_of_mass
 
 def clamp(val, low, high):
     """Clamps val to the range [low, high]."""
@@ -77,6 +77,21 @@ class RegistrationAlgorithm(object):
 
         return result
 
+class FixedPairRegistrationAlgorithm(RegistrationAlgorithm):
+    def __init__(self, source_mesh, destination_mesh, 
+            source_fixed_point = None, destination_fixed_point = None):
+        super(FixedPairRegistrationAlgorithm, self).__init__(source_mesh, destination_mesh)
+
+        if source_fixed_point is None:
+            self.source_fixed = center_of_mass(source_mesh.vs)
+        else:
+            self.source_fixed = source_fixed_point
+
+        if destination_fixed_point is None: 
+            self.destination_fixed = center_of_mass(destination_mesh.vs)
+        else:
+            self.destination_fixed = destination_fixed_point
+
 class PointMapping:
     """Encapsulates the mapping of a point of interest to another point of
     interest, for use in recording the output of registration algorithms."""
@@ -120,28 +135,47 @@ class PointMapping:
 
     def from_file(path):
         """Parses an array of PointMappings from a point mapping file, and
-        returns that array. If errors occur in parsing, whatever points were
-        successfully parsed will be returned."""
-        points = []
-
+        returns that array and parsed grasp points as a tuple. If errors occur
+        in parsing, whatever points were successfully parsed will be
+        returned."""
         try:
             with open(path, "r") as f:
-                for i, line in enumerate(f.readlines()):
-                    splits = line.split()
-                    try:
-                        label  = splits[0]
-                        source = np.array([float(splits[1]), 
-                                           float(splits[2]), 
-                                           float(splits[3])])
-
-                        points.append(PointMapping(label, source))
-
-                    except Exception as err:
-                        print "Failed to parse line {0}: '{1}'".format(i, line)
-
+                return PointMapping.from_string(f.readlines())
         except Exception as err:
             print err
 
-        return points
-
     from_file = staticmethod(from_file)
+
+    def from_string(lines):
+        """Parses an array of PointMappings from a string, and returns that
+        array. If errors occur in parsing, whatever points were successfully
+        parsed will be returned."""
+        points = []
+
+        grasp_points = (None, None)
+
+        for i, line in enumerate(lines):
+            splits = line.split()
+            try:
+                label  = splits[0]
+
+                if label == "grasp-points":
+                    grasp_points = (np.array([float(splits[1]), 
+                                              float(splits[2]), 
+                                              float(splits[3])]),
+                                    np.array([float(splits[4]), 
+                                              float(splits[5]), 
+                                              float(splits[6])]))
+                else:
+                    source = np.array([float(splits[1]), 
+                                       float(splits[2]), 
+                                       float(splits[3])])
+
+                    points.append(PointMapping(label, source))
+
+            except Exception as err:
+                print "Failed to parse line {0}: '{1}'".format(i, line)
+
+        return points, grasp_points
+
+    from_string = staticmethod(from_string)

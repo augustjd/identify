@@ -16,21 +16,12 @@ import random
 from operator import add
 from objfile import *
 
-class IcpAlgorithm(RegistrationAlgorithm):
+class IcpAlgorithm(FixedPairRegistrationAlgorithm):
     def __init__(self, source_mesh, destination_mesh, 
-                 source_fixed_index = None, destination_fixed_index = None, 
+                 source_fixed_point = None, destination_fixed_point = None, 
                  max_iterations = 100):
-        super(IcpAlgorithm, self).__init__(source_mesh, destination_mesh)
-
-        if source_fixed_index is None:
-            self.source_fixed = center_of_mass(source_mesh.vs)
-        else:
-            self.source_fixed = source_mesh.vs[source_fixed_index]
-
-        if destination_fixed_index is None: 
-            self.destination_fixed = center_of_mass(destination_mesh.vs)
-        else:
-            self.destination_fixed = destination_mesh.vs[destination_fixed_index]
+        super(IcpAlgorithm, self).__init__(source_mesh,
+                destination_mesh, source_fixed_point, destination_fixed_point)
 
         print "Identifying points Source: {0} Destination: {1}".format(
                     self.source_fixed, self.destination_fixed
@@ -57,6 +48,14 @@ class IcpAlgorithm(RegistrationAlgorithm):
         assert(self.inverse is not None)
         # No reason to assume this point is better or worse # than the whole mapping, so return confidence of 1.0
         return apply_transform(self.inverse, source_point, len(source_point)), 1.0
+
+    def from_point_indices(source_mesh, destination_mesh, 
+            source_fixed_index, destination_fixed_index):
+        return IcpAlgorithm(source_mesh, destination_mesh,
+                source_mesh.vs[source_fixed_index],
+                destination_mesh.vs[destination_fixed_index])
+
+    from_point_indices = staticmethod(from_point_indices)
 
 EPSILON = 0.01
 

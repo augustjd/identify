@@ -1,26 +1,25 @@
 Identify: Mesh Identifier
-=========================
-Say we have two meshes. One is called Destination (or *D*, for short) and the
-other is called Source (or *S*, for short).
+========================= 
+Say we have two meshes. One is called Destination (or _D_, for short) and the other is called Source (or _S_, for short).
 
 We want to figure out the most likely bending, stretching, and rigid moving to
-apply to *S* to make it look like *D*. We can imagine that we have *S* lying
+apply to _S_ to make it look like _D_. We can imagine that we have _S_ lying
 around, and while we weren't looking, somebody came and moved it until it
-looked like *D*. We have a 3D image of *S* before our coworker messed it up,
+looked like _D_. We have a 3D image of _S_ before our coworker messed it up,
 and we want to use this to figure out precisely what our coworker did. 
 
 To get some handle on the problem, we'll assume our coworker didn't have time
-to take *S* to the moon and back. Instead, we propose, this person probably
-did the least amount of effort possible to move *S* to *D*, so we'll try and
-recover their motion by finding a least-energy way to move *S* to *D*. This
+to take _S_ to the moon and back. Instead, we propose, this person probably
+did the least amount of effort possible to move _S_ to _D_, so we'll try and
+recover their motion by finding a least-energy way to move _S_ to _D_. This
 motion can be expressed as a bijective point mapping that moves each point on
-*S* to a corresponding point on *D*. Let's call such a mapping *f*.
+_S_ to a corresponding point on _D_. Let's call such a mapping _f_.
 
 Further, let's suppose we're not interested in this entire mapping equally,
 but we care about the positions of a few token points more than the rest of
 the points on the meshes. In particular, we want to be highly confident that
-this mapping gives us a correct correspondence of a subset of points *Q* on
-*S* to their partners on *D*, even if that means that the rest of the points
+this mapping gives us a correct correspondence of a subset of points _Q_ on
+_S_ to their partners on _D_, even if that means that the rest of the points
 may be less correctly mapped.
 
 Point Set File Format
@@ -30,10 +29,19 @@ following format:
 ```
 <label> <x-coord> <y-coord> <z-coord>
 <label> <x-coord> <y-coord> <z-coord>
+grasp-points <source-x-coord> <source-y-coord> <source-z-coord> <dest-x-coord> <dest-y-coord> <dest-z-coord>
+<label> <x-coord> <y-coord> <z-coord>
 ...
 ```
 `<label>` is a string label with no spaces and no quotation marks, used to
 identify this particular point for humans. Output will preserve this labeling.
+
+_NOTE_: `<label>` cannot be `grasp-points`, since that name is reserved for
+specifying the identity points on the two meshes, as shown below:
+
+`grasp-points` is an optional line used to specify a point in source
+coordinates and a point in destination coordinates that will be guaranteed to
+be identified by the transformation.
 
 `<_-coord>` is a floating-point number, ideally in scientific format with 6
 decimal points of accuracy, but anything that can be parsed by the default
@@ -80,7 +88,6 @@ Flag|Use
 ----|---
 `-h`|prints this help message, then exits.
 `-m`|mesh output mode - instead of a point set file, save the entire cloud under the mapping as a .obj file to &lt;output&#96;file&gt;
-`-i [s-index] [d-index]`|ensure that the mapping identifies the int of index s-index on S and of d-index on D. By default, the centers of mass of S and D are identified.
 `-v`|verbose output mode
 `--convergence=[val]`|run identification until matching confidence exceeds val (default: 0.1)
 `--algorithm=[val]`|use specified algorithm to perform registration (default: icp).  valid options: icp

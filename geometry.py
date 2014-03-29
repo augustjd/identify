@@ -17,7 +17,7 @@ def unit_vector(v):
     return v / np.linalg.norm(v, 2)
 
 def center_of_mass(cloud):
-    """Returns the 'center of mass', or average point,
+    """Returns the center of mass, or average point,
     in the point cloud 'cloud'."""
     return reduce(add, cloud) / float(len(cloud))
 
@@ -182,3 +182,6 @@ def nearest_neighbor_sampling_error(P, X, P_nearest_neighbors, sample_size = 100
     distances, indices = P_nearest_neighbors.kneighbors(sample)
 
     return reduce(lambda arr, y: arr[0] + y, distances)[0] / sample_size
+
+def nearest_neighbor_distance(point, P_nearest_neighbors):
+    return P_nearest_neighbors.kneighbors(np.array(point))[0][0][0]

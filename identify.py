@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-from sklearn.neighbors import NearestNeighbors
 import numpy as np
 from icp_point_mapping import *
+from li_point_mapping import *
 
 def print_usage():
     print "Usage: {0} [flags] <source_file> <destination_file> <point_set_file> <output_file>".format(
@@ -56,7 +56,8 @@ def flag_args(flags, key, argc):
         return None
 
 VALID_ALGORITHMS = {
-        'icp': IcpAlgorithm
+        'icp': IcpAlgorithm,
+        'li': LiAlgorithm
         }
 if __name__ == "__main__":
     from sys import *
@@ -82,8 +83,12 @@ if __name__ == "__main__":
 
     new_algorithm = flag_value(flags, "--algorithm")
     if new_algorithm:
-        if new_algorithm in valid_algorithms:
+        if new_algorithm in VALID_ALGORITHMS:
             algorithm_name = new_algorithm
+        else:
+            print "Algorithm '{0}' is not supported.".format(new_algorithm)
+            print "Valid options: {0}".format(", ".join(VALID_ALGORITHMS.keys()))
+            exit(0)
 
     ux_index = None
     up_index = None
@@ -107,7 +112,7 @@ if __name__ == "__main__":
 
     if "-m" in flags:
         print "Mesh output mode."
-        algo = VALID_ALGORITHMS[algorithm_name](
+        algo = VALID_ALGORITHMS[algorithm_name].from_point_indices(
             source_mesh, destination_mesh,
             ux_index, up_index
         )
@@ -124,12 +129,13 @@ if __name__ == "__main__":
         print "Compare with '{0}'.".format(argv[-3])
 
     else: # default mode
+        mappings, grasp_points = PointMapping.from_file(argv[-2])
+        print "Grasp points:", grasp_points
+
         algo = VALID_ALGORITHMS[algorithm_name](
             source_mesh, destination_mesh,
-            ux_index, up_index
+            grasp_points[0], grasp_points[1]
         )
-
-        mappings = PointMapping.from_file(argv[-2])
 
         algo.run()
 
