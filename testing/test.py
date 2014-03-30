@@ -1,9 +1,10 @@
-#!/usr/bin/env python
+#.!/usr/bin/env python
 
-from objfile import *
+from ..objfile import *
+from ..identify import *
+
 from sys import argv
 import numpy as np
-from identify import *
 import unittest
 
 class TestNumpyArray(unittest.TestCase):
@@ -83,7 +84,7 @@ class TestNNS(TestNumpyArray):
                                   [1,0,0,1],
                                   [0,1,0,1]])
 
-        self.stuff = load_obj_file("../obj/shorts1vertex70.obj")
+        self.stuff = load_obj_file("./obj/shorts1vertex70.obj")
         self.large = self.stuff[1]
 
     def test_icp_under_identity(self):
@@ -150,7 +151,7 @@ class TestNNS(TestNumpyArray):
 
         self.assertArraysApproximatelyEqual(result, transform)
 
-TEST_TRIMESH = "./testdata/40.obj"
+TEST_TRIMESH = "./nns/testdata/40.obj"
 class TrimeshTest(TestNumpyArray):
     def setUp(self):
         self.mesh = TriMesh.FromOBJ_FileName(TEST_TRIMESH)
