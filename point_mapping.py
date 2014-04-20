@@ -10,6 +10,9 @@ def clamp(val, low, high):
     """Clamps val to the range [low, high]."""
     return max(min(val, high), low)
 
+
+VERBOSE_DEFAULT = False
+
 class RegistrationAlgorithm(object):
     def __init__(self, source_mesh, destination_mesh):
         assert(isinstance(source_mesh, TriMesh) and 
@@ -26,6 +29,8 @@ class RegistrationAlgorithm(object):
 
         self.destination_longest_diagonal = (
                 estimate_max_diagonal(destination_mesh.vs))
+
+        self.verbose = VERBOSE_DEFAULT
 
     def run(self):
         pass
