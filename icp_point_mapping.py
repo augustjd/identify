@@ -89,7 +89,8 @@ def scaling_step(P, X):
     else:
         scale_factor = P_diagonal_length / X_diagonal_length
 
-    print "Scaling X by factor of " + str(scale_factor)
+    if VERBOSE_DEFAULT:
+        print "Scaling X by factor of " + str(scale_factor)
 
     return scaling_matrix(np.array([scale_factor, scale_factor, scale_factor]))
 
