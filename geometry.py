@@ -264,8 +264,8 @@ def nearest_neighbor_distance(point, P_nearest_neighbors):
 def nearest_neighbor_index(point, P_nearest_neighbors):
     return P_nearest_neighbors.kneighbors(np.array(point))[1][0][0]
 
-def estimate_grasp_points(vs, sample_size = 15):
+def estimate_grasp_point(vs, sample_size = 5):
     """Estimates the grasp point on mesh by taking an average of the topmost
-    (highest Z) sample_size points on mesh."""
+    (highest Y) sample_size points on mesh."""
     actual_sample_size = min(len(vs), sample_size)
-    return center_of_mass(sorted(vs, key=lambda v: v[2])[-actual_sample_size:])
+    return center_of_mass(sorted(vs, key=lambda v: v[1])[-actual_sample_size:])
