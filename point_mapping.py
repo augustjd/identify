@@ -82,15 +82,8 @@ class FixedPairRegistrationAlgorithm(RegistrationAlgorithm):
             source_fixed_point = None, destination_fixed_point = None):
         super(FixedPairRegistrationAlgorithm, self).__init__(source_mesh, destination_mesh)
 
-        if source_fixed_point is None:
-            self.source_fixed = center_of_mass(source_mesh.vs)
-        else:
-            self.source_fixed = source_fixed_point
-
-        if destination_fixed_point is None: 
-            self.destination_fixed = center_of_mass(destination_mesh.vs)
-        else:
-            self.destination_fixed = destination_fixed_point
+        self.source_fixed = source_fixed_point
+        self.destination_fixed = destination_fixed_point
 
 class PointMapping:
     """Encapsulates the mapping of a point of interest to another point of

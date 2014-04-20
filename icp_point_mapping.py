@@ -15,11 +15,15 @@ import random
 
 from operator import add
 from objfile import *
-
-class IcpAlgorithm(FixedPairRegistrationAlgorithm):
+class IcpAlgorithm(FixedPairRegistrationAlgorithm): 
     def __init__(self, source_mesh, destination_mesh, 
                  source_fixed_point = None, destination_fixed_point = None, 
                  max_iterations = 100):
+        if source_fixed_point is None:
+            source_fixed_point = center_of_mass(source_mesh.vs)
+        if destination_fixed_point is None:
+            destination_fixed_point = center_of_mass(destination_mesh.vs)
+
         super(IcpAlgorithm, self).__init__(source_mesh,
                 destination_mesh, source_fixed_point, destination_fixed_point)
 
@@ -51,9 +55,20 @@ class IcpAlgorithm(FixedPairRegistrationAlgorithm):
 
     def from_point_indices(source_mesh, destination_mesh, 
             source_fixed_index, destination_fixed_index):
-        return IcpAlgorithm(source_mesh, destination_mesh,
-                source_mesh.vs[source_fixed_index],
-                destination_mesh.vs[destination_fixed_index])
+        if source_fixed_index is None and destination_fixed_index is None:
+            return IcpAlgorithm(source_mesh, destination_mesh, None, None)
+        elif source_fixed_index is None:
+            return IcpAlgorithm(source_mesh, destination_mesh,
+                    None,
+                    destination_mesh.vs[destination_fixed_index])
+        elif destination_fixed_index is None:
+            return IcpAlgorithm(source_mesh, destination_mesh,
+                    source_mesh.vs[source_fixed_index],
+                    None)
+        else:
+            return IcpAlgorithm(source_mesh, destination_mesh,
+                    source_mesh.vs[source_fixed_index],
+                    destination_mesh.vs[destination_fixed_index])
 
     from_point_indices = staticmethod(from_point_indices)
 

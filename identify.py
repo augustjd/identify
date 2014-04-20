@@ -3,6 +3,8 @@
 import numpy as np
 from icp_point_mapping import *
 from li_point_mapping import *
+from energy_point_mapping import *
+from radial_point_mapping import *
 
 def print_usage():
     print "Usage: {0} [flags] <source_file> <destination_file> <point_set_file> <output_file>".format(
@@ -26,7 +28,9 @@ def print_usage():
     print
     print ("\t--algorithm=[val]:\tuse specified algorithm to perform " +
             "registration (default: icp).")
-    print "\t\t\t\tvalid options: icp"
+    print "\t\t\t\tTo use several in sequence, write them in order delimited by +,"
+    print "\t\t\t\tsuch as icp+li."
+    print "\t\t\t\tvalid options: {0}".format(", ".join(VALID_ALGORITHMS.keys()))
 
 def flag_exists(flags, flag):
     return last_flag_matching(flags, flag) is not None
@@ -57,8 +61,12 @@ def flag_args(flags, key, argc):
 
 VALID_ALGORITHMS = {
         'icp': IcpAlgorithm,
-        'li': LiAlgorithm
+        'li': LiAlgorithm,
+        'simple': SimpleEnergyAlgorithm,
+        'energy': EnergyAlgorithm,
+        'radial': RadialAlgorithm
         }
+
 if __name__ == "__main__":
     from sys import *
     flags = argv[:-3]
@@ -82,13 +90,19 @@ if __name__ == "__main__":
     algorithm_name = "icp"
 
     new_algorithm = flag_value(flags, "--algorithm")
+    algorithms_list = []
     if new_algorithm:
-        if new_algorithm in VALID_ALGORITHMS:
-            algorithm_name = new_algorithm
-        else:
-            print "Algorithm '{0}' is not supported.".format(new_algorithm)
-            print "Valid options: {0}".format(", ".join(VALID_ALGORITHMS.keys()))
-            exit(0)
+        algorithm_names = new_algorithm.split("+")
+        for name in algorithm_names:
+            if name in VALID_ALGORITHMS:
+                algorithms_list.append(VALID_ALGORITHMS[name])
+            else:
+                print "Algorithm '{0}' is not supported.".format(new_algorithm)
+                print "Valid options: {0}".format(", ".join(VALID_ALGORITHMS.keys()))
+                exit(0)
+        print "Performing in order:", "->".join(algorithm_names)
+    else:
+        algorithms_list = [IcpAlgorithm]
 
     ux_index = None
     up_index = None
@@ -111,16 +125,23 @@ if __name__ == "__main__":
         exit(0)
 
     if "-m" in flags:
+        mappings, grasp_points = PointMapping.from_file(argv[-2])
+        print "Grasp points:\n\tSource:\t\t{0}\n\tDestination:\t{1}".format(*grasp_points)
+
+        source_grasp_point = grasp_points[0]
         print "Mesh output mode."
-        algo = VALID_ALGORITHMS[algorithm_name].from_point_indices(
-            source_mesh, destination_mesh,
-            ux_index, up_index
-        )
+        transformed = source_mesh.copy()
+        for i, algo in enumerate(algorithms_list):
+            iteration = algo(
+                source_mesh, destination_mesh,
+                source_grasp_point, grasp_points[1]
+            )
 
-        algo.run()
+            iteration.run()
 
-        transformed = algo.transformed_mesh()
-        print "Finished transformation."
+            transformed = iteration.transformed_mesh()
+            print "Finished transformation {0}/{1}.".format(i+1,
+                    len(algorithms_list))
 
         # use the red texture that's already in testdata/
         transformed.write_OBJ(argv[-1], "mtllib default.mtl\nusemtl defaultred")
@@ -132,14 +153,26 @@ if __name__ == "__main__":
         mappings, grasp_points = PointMapping.from_file(argv[-2])
         print "Grasp points:", grasp_points
 
-        algo = VALID_ALGORITHMS[algorithm_name](
-            source_mesh, destination_mesh,
-            grasp_points[0], grasp_points[1]
-        )
+        source_grasp_point = grasp_points[0]
 
-        algo.run()
+        transformed = source_mesh.copy()
+        for i, algo in enumerate(algorithms_list):
+            iteration = algo(
+                source_mesh, destination_mesh,
+                source_grasp_point, grasp_points[1]
+            )
 
-        for mapping in mappings:
-            algo.register(mapping)
+            iteration.run()
+
+            transformed = iteration.transformed_mesh()
+
+            for mapping in mappings:
+                iteration.register(mapping)
+
+            # move source fixed point
+            source_grasp_point, _ = iteration.transform(source_grasp_point)
+
+            print "Finished transformation {0}/{1}.".format(i+1,
+                    len(algorithms_list))
 
         PointMapping.to_file(argv[-1], mappings)

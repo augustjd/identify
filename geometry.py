@@ -91,14 +91,89 @@ def rotation_matrix(theta_x, theta_y, theta_z):
                    single_rotation_matrix(theta_y, 1), 
                    single_rotation_matrix(theta_z, 2))
 
+def arbitrary_axis_rotation(axis, theta):
+    """Returns a 4x4 rotation matrix which rotates input vectors by theta
+    radians about the provided axis, using a right-handed coordinate system.
+    axis should be a numpy.ndarray., theta is a float.  Uses the derivation
+    found at http://science.kennesaw.edu/~plaval/math4490/rotgen.pdf"""
+    import math
+
+    assert(not np.allclose(axis, np.zeros(3)))
+
+    x, y, z = unit_vector(axis)
+    C = math.cos(theta)
+    S = math.sin(theta)
+    t = 1.0 - C
+
+    result = np.array([[t*x**2 + C,  t*x*y - S*z, t*x*z + S*y,  0],
+                       [t*x*y + S*z, t*y**2 + C,  t*y*z - S*x,  0],
+                       [t*x*z - S*y, t*y*z + S*x, t*z**2 + C,   0],
+                       [0,           0,           0,            1]])
+
+    assert(abs(np.linalg.det(result)) - 1.0 < 1e-3)
+
+    return result
+
+def arbitrary_axis_rotation_at_arbitrary_origin(axis, origin, theta):
+    """Returns a 4x4 affine transformation which rotates input vectors
+    by theta radians about the provided axis, centered at the provided
+    origin, using a right-handed coordinate system."""
+    return compose(translation_matrix(origin), 
+                   arbitrary_axis_rotation(axis, theta), 
+                   translation_matrix(-origin))
+
+
+def unitary_matrix(M):
+    # must be square
+    assert(M.shape[0] == M.shape[1])
+
+    return M / (np.linalg.det(M) ** (1./M.shape[0]))
+
+def get_unify_segments_matrix(a, b, c):
+    """Returns a matrix which rotates the line segment bc to put it
+    on the line defined by segment ab."""
+    import math
+
+    # get first 3 components, if these are affine 4x1 vectors,
+    # so that cross is well defined.
+    a = vector_from_affine(a)
+    b = vector_from_affine(b)
+    c = vector_from_affine(c)
+
+    axis   = unit_vector(np.cross(c-b, a-b))
+    origin = b
+    theta  = math.acos(np.dot(unit_vector(a-b), unit_vector(c-b)))
+
+    return unitary_matrix(arbitrary_axis_rotation_at_arbitrary_origin(axis,
+        origin, theta))
+
+def vector_to_affine(v):
+    result = np.ones(4)
+    result[0:3] = v.copy()
+    return result
+
+def vector_from_affine(v):
+    return v[0:3].copy()
+
+def to_affine(A,b):
+    """Turns a 3x3 ndarray and 3x1 ndarray pair (A,b) into an
+    equivalent affine 4x4 matrix."""
+    result = np.identity(4)
+    result[0:3, 0:3] = A
+    result[0:3, 3]   = b
+    return result
+
+def from_affine(affine):
+    """Given an affine transformation T, return the pair (A,b) such that the
+    action Tx on a 4d vector x is equivalent to the action Ax' + b on the 3d vector
+    x' produced by ignoring x's w component."""
+    return (affine[0:3, 0:3], affine[0:3, 3])
+
 def translation_matrix(dv):
     """Returns a 4x4 affine translation matrix which translates each point by
     the 3x1 vector dv."""
     M = np.identity(4)
-
-    M[0, 3] = dv[0]
-    M[1, 3] = dv[1]
-    M[2, 3] = dv[2]
+    M[0:3, 3] = dv[0:3]
 
     return M
 
@@ -185,3 +260,6 @@ def nearest_neighbor_sampling_error(P, X, P_nearest_neighbors, sample_size = 100
 
 def nearest_neighbor_distance(point, P_nearest_neighbors):
     return P_nearest_neighbors.kneighbors(np.array(point))[0][0][0]
+
+def nearest_neighbor_index(point, P_nearest_neighbors):
+    return P_nearest_neighbors.kneighbors(np.array(point))[1][0][0]
