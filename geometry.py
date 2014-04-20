@@ -140,9 +140,14 @@ def get_unify_segments_matrix(a, b, c):
     b = vector_from_affine(b)
     c = vector_from_affine(c)
 
+    # unit_vector(cross) fails if they are identical,
+    # so in that case return the identity.
+    if np.allclose(np.array([0,0,0]), (a-b) - (c-b)):
+        return np.identity(4)
+
     axis   = unit_vector(np.cross(c-b, a-b))
     origin = b
-    theta  = math.acos(np.dot(unit_vector(a-b), unit_vector(c-b)))
+    theta  = math.acos(min(1.0, np.dot(unit_vector(a-b), unit_vector(c-b))))
 
     return unitary_matrix(arbitrary_axis_rotation_at_arbitrary_origin(axis,
         origin, theta))
