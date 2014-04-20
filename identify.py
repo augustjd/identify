@@ -124,13 +124,18 @@ if __name__ == "__main__":
         print "Failed to load source: Something is wrong with the source mesh."
         exit(0)
 
-    if "-m" in flags:
-        mappings, grasp_points = PointMapping.from_file(argv[-2])
-        print "Grasp points:\n\tSource:\t\t{0}\n\tDestination:\t{1}".format(*grasp_points)
+    mappings, grasp_points = PointMapping.from_file(argv[-2])
+    if grasp_points == (None,None):
+        print "Estimating grasp points..."
+        grasp_points = (estimate_grasp_point(source_mesh.vs), 
+                        estimate_grasp_point(destination_mesh.vs))
 
-        source_grasp_point = grasp_points[0]
+    print "Grasp points:\n\tSource:\t\t{0}\n\tDestination:\t{1}".format(*grasp_points)
+    source_grasp_point = grasp_points[0]
+    transformed = source_mesh.copy()
+
+    if "-m" in flags:
         print "Mesh output mode."
-        transformed = source_mesh.copy()
         for i, algo in enumerate(algorithms_list):
             iteration = algo(
                 source_mesh, destination_mesh,
@@ -150,12 +155,6 @@ if __name__ == "__main__":
         print "Compare with '{0}'.".format(argv[-3])
 
     else: # default mode
-        mappings, grasp_points = PointMapping.from_file(argv[-2])
-        print "Grasp points:", grasp_points
-
-        source_grasp_point = grasp_points[0]
-
-        transformed = source_mesh.copy()
         for i, algo in enumerate(algorithms_list):
             iteration = algo(
                 source_mesh, destination_mesh,
