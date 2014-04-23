@@ -170,7 +170,7 @@ DO_SHAKE = True
 SHAKE_AMOUNT = 5.5
 SHAKE_THRESHOLD = 1e-6
 
-VERBOSE = True
+VERBOSE = False
 
 DO_FLIP = False
 

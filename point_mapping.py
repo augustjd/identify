@@ -82,12 +82,20 @@ class RegistrationAlgorithm(object):
 
         return result
 
+    def fit_error(self):
+        mesh = self.transformed_mesh()
+
+        def point_error(self, pt):
+            return nearest_neighbor_distance(pt, self.destination_nearest_neighbors)**2
+
+        return sum(map(mesh.vs, point_error))
+
 class FixedPairRegistrationAlgorithm(RegistrationAlgorithm):
     def __init__(self, source_mesh, destination_mesh, 
             source_fixed_point = None, destination_fixed_point = None):
         super(FixedPairRegistrationAlgorithm, self).__init__(source_mesh, destination_mesh)
 
-        self.source_fixed = source_fixed_point
+        self.source_fixed = source_fixed_point 
         self.destination_fixed = destination_fixed_point
 
 class PointMapping:
