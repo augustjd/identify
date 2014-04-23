@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
     if "-v" in flags:
         print "Verbose."
-        VERBOSE = True
+        VERBOSE_DEFAULT = True
 
     new_threshold = flag_value(flags, "--convergence")
     if new_threshold:
