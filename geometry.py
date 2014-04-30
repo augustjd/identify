@@ -274,3 +274,67 @@ def estimate_grasp_point(vs, sample_size = 5):
     (highest Y) sample_size points on mesh."""
     actual_sample_size = min(len(vs), sample_size)
     return center_of_mass(sorted(vs, key=lambda v: v[1])[-actual_sample_size:])
+
+def curvature_of_edge(he, mesh):
+    """Computes the curvature at the provided halfedge of the TriMesh mesh."""
+    edge_indices = mesh.edges[he.edge]
+
+    if edge_indices[1] == he.to_vertex:
+        # flip the halfedge
+        he = mesh.halfedges[he.opposite_he]
+
+
+    edge_array = [mesh.vs[edge_indices[0]], 
+                  mesh.vs[edge_indices[1]]]
+    edge_vector = edge_array[1] - edge_array[0]
+
+    left_normal  = mesh.face_normals[he.face]
+    right_normal = mesh.face_normals[mesh.halfedges[he.opposite_he].face]
+
+    # see http://torus.math.uiuc.edu/jms/Papers/dscrv.pdf section 4.3
+    return np.cross(edge_vector, left_normal) - np.cross(edge_vector, right_normal)
+
+def curvature_at_point(i, mesh):
+    """Returns the curvature at the point at index i on mesh,
+    if that point is NOT on a boundary, otherwise, returns +inf."""
+    if mesh.vertex_is_boundary(i):
+        return float("+inf")
+
+    vertex_neighbors = mesh.vertex_vertex_neighbors(i)
+    # some halfedges are directed outward, some inward. we want all of them.
+    he_neighbors = []
+    for vi in vertex_neighbors:
+        outgoing = mesh.directed_edge2he_index((i, vi))
+        ingoing  = mesh.directed_edge2he_index((vi, i))
+
+        if outgoing:
+            he_neighbors.append(mesh.halfedges[outgoing])
+        if ingoing:
+            he_neighbors.append(mesh.halfedges[ingoing])
+
+    return np.linalg.norm(sum(map(lambda he: curvature_of_edge(he, mesh), he_neighbors))) / 2.0
+
+
+def get_points_of_high_curvature(mesh, cutoff_percentile = 0.15):
+    """Returns an array of indices of the points on mesh whose absolute value
+    of mean curvature is above the cutoff_percentile, by default, this means
+    its curvature is higher than 15% of points on the mesh."""
+    curvature_of_points = map(lambda i: (i, abs(curvature_at_point(i, mesh))), range(len(mesh.vs)))
+    curvature_of_points.sort(key=lambda tup: tup[1])
+
+    cutoff_index = int(math.floor((1 - cutoff_percentile) * len(curvature_of_points)))
+
+    return map(lambda tup: tup[0], curvature_of_points[:cutoff_index])
+
+def get_mesh_of_high_curvature(mesh, cutoff_percentile = 0.15):
+    """Returns a copy of mesh which consists only of points whose absolute
+    value of mean curvature is above the cutoff_percentile, by default, this
+    means its curvature is higher than 15% of points on the mesh."""
+    copy = mesh.copy()
+    curvature_of_points = map(lambda i: (i, abs(curvature_at_point(i, mesh))), range(len(mesh.vs)))
+    curvature_of_points.sort(key=lambda tup: tup[1])
+
+    cutoff_index = int(math.floor((1 - cutoff_percentile) * len(curvature_of_points)))
+    copy.remove_vertex_indices(map(lambda tup: tup[0], curvature_of_points[:cutoff_index]))
+
+    return copy

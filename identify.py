@@ -5,6 +5,7 @@ from icp_point_mapping import *
 from li_point_mapping import *
 from energy_point_mapping import *
 from radial_point_mapping import *
+from curvature_point_mapping import *
 
 def print_usage():
     print "Usage: {0} [flags] <source_file> <destination_file> <point_set_file> <output_file>".format(
@@ -60,11 +61,13 @@ def flag_args(flags, key, argc):
         return None
 
 VALID_ALGORITHMS = {
-        'icp': IcpAlgorithm,
-        'li': LiAlgorithm,
-        'simple': SimpleEnergyAlgorithm,
-        'energy': EnergyAlgorithm,
-        'radial': RadialAlgorithm
+        'icp':       IcpAlgorithm,
+        'li':        LiAlgorithm,
+        'simple':    SimpleEnergyAlgorithm,
+        'energy':    EnergyAlgorithm,
+        'radial':    RadialAlgorithm,
+        'curvature': CurvatureAlgorithm,
+        'curvatureicp': CurvatureIcp
         }
 
 if __name__ == "__main__":
