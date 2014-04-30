@@ -9,7 +9,6 @@ between two point clouds.
 from point_mapping import *
 import numpy as np
 from geometry import *
-import cv2
 
 import random
 

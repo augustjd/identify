@@ -9,7 +9,6 @@ from point_mapping import *
 import numpy as np
 from scipy.optimize import minimize
 from geometry import *
-import cv2
 
 import random
 
