@@ -97,3 +97,11 @@ Examples
 ```
 ./identify.py maya_shorts.obj kinect_shorts.obj Q.txt output.txt
 ```
+
+BOUNDARY POINTS
+boundary points are connected to edges which do not have 2 faces.
+
+Next steps:
+ - Smoothing with Maya and MEL
+ - Find Curvatures (averge mean curvatures on all incident edges?)
+ - Identify curvatures with rigid Radial registration

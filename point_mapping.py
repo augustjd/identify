@@ -4,7 +4,7 @@ from sklearn.neighbors import NearestNeighbors
 import numpy as np 
 
 from trimesh import TriMesh
-from geometry import dist, estimate_max_diagonal, transform_trimesh, center_of_mass
+from geometry import dist, estimate_max_diagonal, transform_trimesh, center_of_mass, nearest_neighbor_distance
 
 def clamp(val, low, high):
     """Clamps val to the range [low, high]."""
@@ -82,13 +82,13 @@ class RegistrationAlgorithm(object):
 
         return result
 
+    def point_error(self, pt):
+        return nearest_neighbor_distance(pt, self.destination_nearest_neighbors)**2
+
     def fit_error(self):
         mesh = self.transformed_mesh()
 
-        def point_error(self, pt):
-            return nearest_neighbor_distance(pt, self.destination_nearest_neighbors)**2
-
-        return sum(map(mesh.vs, point_error))
+        return sum(map(self.point_error, mesh.vs))
 
 class FixedPairRegistrationAlgorithm(RegistrationAlgorithm):
     def __init__(self, source_mesh, destination_mesh, 
