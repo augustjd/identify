@@ -6,6 +6,7 @@ Contains a number of utility functions to expediate
 import numpy as np
 import math
 from operator import add
+from multithreading_help import *
 
 def dist(p, q):
     """Returns the L2 distance between points p and q."""
@@ -295,8 +296,8 @@ def curvature_of_edge(he, mesh):
     return np.cross(edge_vector, left_normal) - np.cross(edge_vector, right_normal)
 
 def curvature_at_point(i, mesh):
-    """Returns the curvature at the point at index i on mesh,
-    if that point is NOT on a boundary, otherwise, returns +inf."""
+    """Returns the curvature at the point at index i on mesh.
+    NOTE: If the point is on a boundary, returns +inf."""
     if mesh.vertex_is_boundary(i):
         return float("+inf")
 
@@ -315,7 +316,7 @@ def curvature_at_point(i, mesh):
     return np.linalg.norm(sum(map(lambda he: curvature_of_edge(he, mesh), he_neighbors))) / 2.0
 
 
-def get_points_of_high_curvature(mesh, cutoff_percentile = 0.15):
+def get_indices_of_high_curvature(mesh, cutoff_percentile = 0.15):
     """Returns an array of indices of the points on mesh whose absolute value
     of mean curvature is above the cutoff_percentile, by default, this means
     its curvature is higher than 15% of points on the mesh."""

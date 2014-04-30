@@ -276,6 +276,9 @@ class TriMesh( object ):
             self.edge = -1
             self.opposite_he = -1
             self.next_he = -1
+
+        def __str__(self):
+            return "<Halfedge to vertex:{0}>".format(self.to_vertex)
     
     def update_halfedges( self ):
         '''
@@ -396,14 +399,17 @@ class TriMesh( object ):
         
         ## For each boundary halfedge, make its next_he one of the boundary halfedges
         ## originating at its to_vertex.
-        for hei in boundary_heis:
-            he = self.__halfedges[ hei ]
-            for outgoing_hei in vertex2outgoing_boundary_hei[ he.to_vertex ]:
-                he.next_he = outgoing_hei
-                vertex2outgoing_boundary_hei[ he.to_vertex ].remove( outgoing_hei )
-                break
+        try:
+            for hei in boundary_heis:
+                he = self.__halfedges[ hei ]
+                for outgoing_hei in vertex2outgoing_boundary_hei[ he.to_vertex ]:
+                    he.next_he = outgoing_hei
+                    vertex2outgoing_boundary_hei[ he.to_vertex ].remove( outgoing_hei )
+                    break
+        except:
+            pass
         
-        assert False not in [ 0 == len( out_heis ) for out_heis in vertex2outgoing_boundary_hei.itervalues() ]
+        # assert False not in [ 0 == len( out_heis ) for out_heis in vertex2outgoing_boundary_hei.itervalues() ]
     
     def he_index2directed_edge( self, he_index ):
         '''
@@ -426,6 +432,10 @@ class TriMesh( object ):
         if self.__directed_edge2he_index is None: self.update_halfedges()
         
         edge = tuple( edge )
+
+        if edge not in self.__directed_edge2he_index:
+            return None
+
         return self.__directed_edge2he_index[ edge ]
     
     def get_halfedges( self ):
@@ -453,11 +463,16 @@ class TriMesh( object ):
         result = []
         start_he = halfedges[ self.__vertex_halfedges[ vertex_index ] ]
         he = start_he
+
+        # to prevent from looping forever...
+        MAX_COUNT = 100
+        count = 0
         while True:
             result.append( he.to_vertex )
             
             he = halfedges[ halfedges[ he.opposite_he ].next_he ]
-            if he is start_he: break
+            if he is start_he or count > MAX_COUNT: break
+            count += 1
         
         return result
     
@@ -501,6 +516,9 @@ class TriMesh( object ):
         ## It's important to access self.halfedges first (which calls get_halfedges()),
         ## so that we're sure all halfedge info is generated.
         halfedges = self.halfedges
+        if self.__vertex_halfedges[vertex_index] == None:
+            return True
+
         return -1 == halfedges[ self.__vertex_halfedges[ vertex_index ] ].face
     
     def boundary_vertices( self ):
@@ -689,11 +707,9 @@ class TriMesh( object ):
             old2new_recurse = self.remove_vertex_indices( dangling )
             assert 0 == len( self.get_dangling_vertices() )
             
-            '''
             for i in xrange( len( old2new ) ):
                 if -1 != old2new[i]: old2new[i] = old2new_recurse[ old2new[ i ] ]
-            '''
-            old2new[ old2new != -1 ] = old2new_recurse[ old2new ]
+            #old2new[ old2new != -1 ] = old2new_recurse[ old2new ]
         
         return old2new
     

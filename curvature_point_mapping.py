@@ -61,16 +61,19 @@ class CurvatureAlgorithm(RadialAlgorithm):
 
         self.min_energy = float('+inf')
 
-        self.source_high_curvature_indices = get_points_of_high_curvature(self.source_mesh)
+        self.source_high_curvature_indices = get_indices_of_high_curvature(self.source_mesh)
         self.source_high_curvature_indices.sort()
 
         self.destination_high_curvature = map(self.destination_mesh.vs.__getitem__,
-                get_points_of_high_curvature(self.destination_mesh))
+                get_indices_of_high_curvature(self.destination_mesh))
 
         self.destination_nearest_neighbors = NearestNeighbors(n_neighbors=1, 
                 algorithm="kd_tree").fit(self.destination_high_curvature)
 
         self.verbose = True
+
+        from threading import Lock
+        self.lock = Lock()
 
     MAX_SAMPLE_SIZE = 500
 
@@ -82,19 +85,20 @@ class CurvatureAlgorithm(RadialAlgorithm):
         A,b = from_affine(self.fixed_axis_rotation_matrix(theta))
         copy = (np.dot(A, self.source_as_mat.T).T + b)
         energy = self.Efit(copy)
-        if energy < self.min_energy:
-            if self.verbose:
-                print "New best energy:", energy
-            self.min_energy = energy
-            self.vertices = np.asarray(copy)
+        with self.lock:
+            if energy < self.min_energy:
+                if self.verbose:
+                    print "New best energy:", energy
+                self.min_energy = energy
+                self.vertices = np.asarray(copy)
         return energy
 
 class CurvatureIcp(IcpAlgorithm):
     def run(self):
         """Calls icp(), which takes a long time, to find the registration
         between the two meshes."""
-        self.source_fixed      = center_of_mass(self.source_mesh.vs)
-        self.destination_fixed = center_of_mass(self.destination_mesh.vs)
+        #self.source_fixed      = center_of_mass(self.source_mesh.vs)
+        #self.destination_fixed = center_of_mass(self.destination_mesh.vs)
 
         source_high_curvature      = get_mesh_of_high_curvature(self.source_mesh)
         destination_high_curvature = get_mesh_of_high_curvature(self.destination_mesh)
