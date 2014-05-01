@@ -31,6 +31,8 @@ following format:
 <label> <x-coord> <y-coord> <z-coord>
 grasp-points <source-x-coord> <source-y-coord> <source-z-coord> <dest-x-coord> <dest-y-coord> <dest-z-coord>
 <label> <x-coord> <y-coord> <z-coord>
+<label> <index>
+<label> <x-coord> <y-coord> <z-coord>
 ...
 ```
 `<label>` is a string label with no spaces and no quotation marks, used to
@@ -42,6 +44,10 @@ specifying the identity points on the two meshes, as shown below:
 `grasp-points` is an optional line used to specify a point in source
 coordinates and a point in destination coordinates that will be guaranteed to
 be identified by the transformation.
+
+Each point's coordinates can be specified in one of two ways:
+
+`<index>` is the index of the vertex on the source mesh, as an integer
 
 `<_-coord>` is a floating-point number, ideally in scientific format with 6
 decimal points of accuracy, but anything that can be parsed by the default

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-
-from sklearn.neighbors import NearestNeighbors
+from sklearn.neighbors import NearestNeighbors 
 import numpy as np 
 
 from trimesh import TriMesh
@@ -139,20 +138,20 @@ class PointMapping:
 
     to_file = staticmethod(to_file)
 
-    def from_file(path):
+    def from_file(path, source_mesh = None):
         """Parses an array of PointMappings from a point mapping file, and
         returns that array and parsed grasp points as a tuple. If errors occur
         in parsing, whatever points were successfully parsed will be
         returned."""
         try:
             with open(path, "r") as f:
-                return PointMapping.from_string(f.readlines())
+                return PointMapping.from_string(f.readlines(), source_mesh)
         except Exception as err:
             print err
 
     from_file = staticmethod(from_file)
 
-    def from_string(lines):
+    def from_string(lines, source_mesh = None):
         """Parses an array of PointMappings from a string, and returns that
         array. If errors occur in parsing, whatever points were successfully
         parsed will be returned."""
@@ -173,9 +172,12 @@ class PointMapping:
                                               float(splits[5]), 
                                               float(splits[6])]))
                 else:
-                    source = np.array([float(splits[1]), 
-                                       float(splits[2]), 
-                                       float(splits[3])])
+                    if len(splits) == 2:
+                        source = source_mesh.vs[int(splits[1])]
+                    else:
+                        source = np.array([float(splits[1]), 
+                                           float(splits[2]), 
+                                           float(splits[3])])
 
                     points.append(PointMapping(label, source))
 
