@@ -8,9 +8,16 @@ from radial_point_mapping import *
 from curvature_point_mapping import *
 
 def print_usage():
-    print "Usage: {0} [flags] <source_file> <destination_file> <point_set_file> <output_file>".format(
+    print "Point Set Mode Usage:"
+    print "{0} [flags] <source_file> <destination_file> <point_set_file> <output_file>".format(
             argv[0]
             )
+    print
+    print "Mesh output mode usage:"
+    print "{0} -m [flags] <source_file> <destination_file> <output_mesh_file>".format(
+            argv[0]
+            )
+    print
     print "Supported Flags"
     print "\t-h:\t\t\tprints this help message, then exits."
     print
@@ -115,19 +122,31 @@ if __name__ == "__main__":
         ux_index = int(index_args[0]) # source
         up_index = int(index_args[1]) # destination
 
+    if "-m" in flags:
+        source_mesh_file_name = argv[-3]
+        destination_mesh_file_name = argv[-2]
+    else:
+        source_mesh_file_name = argv[-4]
+        destination_mesh_file_name = argv[-3]
+
+    output_file_name = argv[-1]
+    
     try:
-        source_mesh      = TriMesh.FromOBJ_FileName(argv[-4])
+        source_mesh      = TriMesh.FromOBJ_FileName(source_mesh_file_name)
     except AssertionError:
         print "Failed to load source: Something is wrong with the source mesh."
         exit(0)
 
     try:
-        destination_mesh = TriMesh.FromOBJ_FileName(argv[-3])
+        destination_mesh = TriMesh.FromOBJ_FileName(destination_mesh_file_name)
     except AssertionError:
         print "Failed to load source: Something is wrong with the source mesh."
         exit(0)
 
-    mappings, grasp_points = PointMapping.from_file(argv[-2])
+    grasp_points = (None,None)
+    if "-m" not in flags:
+        mappings, grasp_points = PointMapping.from_file(argv[-2], source_mesh)
+
     if grasp_points == (None,None):
         print "Estimating grasp points..."
         grasp_points = (estimate_grasp_point(source_mesh.vs), 
@@ -152,10 +171,10 @@ if __name__ == "__main__":
                     len(algorithms_list))
 
         # use the red texture that's already in testdata/
-        transformed.write_OBJ(argv[-1], "mtllib default.mtl\nusemtl defaultred")
+        transformed.write_OBJ(output_file_name, "mtllib default.mtl\nusemtl defaultred")
 
-        print "Wrote mesh to '{0}'.".format(argv[-1])
-        print "Compare with '{0}'.".format(argv[-3])
+        print "Wrote mesh to '{0}'.".format(output_file_name)
+        print "Compare with '{0}'.".format(destination_mesh_file_name)
 
     else: # default mode
         for i, algo in enumerate(algorithms_list):
@@ -177,4 +196,4 @@ if __name__ == "__main__":
             print "Finished transformation {0}/{1}.".format(i+1,
                     len(algorithms_list))
 
-        PointMapping.to_file(argv[-1], mappings)
+        PointMapping.to_file(output_file_name, mappings)
