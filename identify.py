@@ -8,31 +8,30 @@ from radial_point_mapping import *
 from curvature_point_mapping import *
 
 def print_usage():
-    print "Point Set Mode Usage:"
-    print "{0} [flags] <source_file> <destination_file> <point_set_file> <output_file>".format(
-            argv[0]
-            )
-    print
-    print "Mesh output mode usage:"
-    print "{0} -m [flags] <source_file> <destination_file> <output_mesh_file>".format(
+    print "Usage: {0} [flags] <source_file> <destination_file> <point_set_file> <output_file>".format(
             argv[0]
             )
     print
     print "Supported Flags"
     print "\t-h:\t\t\tprints this help message, then exits."
     print
-    print "\t-m:\t\t\tmesh output mode - instead of a point set file, save the"
-    print "\t\t\t\tentire cloud under the mapping as a .obj file to <output_file>."
-    print "\t\t\t\t<point_set_file> must be present, but will be ignored."
+    print "\t-no-point-file:\t\tDon't read or write to point set files, so the final two"
+    print "\t\t\t\targuments can be omitted from the invocation. Good if you"
+    print "\t\t\t\tjust want a mesh file output. This makes invocation look like:"
+    print
+    print "\t\t\t\t{0} -no-point-file -m [mesh_output_file] [flags] <source_file> <destination_file>".format(
+            argv[0]
+            )
+    print
+    print "\t-m [mesh_output_file]:\tmesh output mode - in addition to a point set file, save the"
+    print "\t\t\t\tentire cloud under the mapping as a .obj file to [mesh_output_file]."
     print
     print ("\t-i [s-index] [d-index]:\tensure that the mapping identifies the " +
         "point of index s-index on")
-    print "\t\t\t\tS and of d-index on D. By default,the centers of mass of S "
+    print "\t\t\t\tS and of d-index on D. By default, the centers of mass of S"
     print "\t\t\t\tand D are identified."
     print
     print "\t-v:\t\t\tverbose output mode"
-    print
-    print "\t--convergence=[val]:\trun identification until matching confidence exceeds val (default: 0.1)"
     print
     print ("\t--algorithm=[val]:\tuse specified algorithm to perform " +
             "registration (default: icp).")
@@ -85,18 +84,6 @@ if __name__ == "__main__":
         print_usage()
         exit(0)
 
-    if "-v" in flags:
-        print "Verbose."
-        VERBOSE_DEFAULT = True
-
-    new_threshold = flag_value(flags, "--convergence")
-    if new_threshold:
-        try:
-            CONVERGENCE_THRESHOLD = float(eps)
-        except Exception as e: 
-            print "Error parsing convergence threshold {0}".format(eps) 
-            exit(0)
-
     algorithm_name = "icp"
 
     new_algorithm = flag_value(flags, "--algorithm")
@@ -122,30 +109,41 @@ if __name__ == "__main__":
         ux_index = int(index_args[0]) # source
         up_index = int(index_args[1]) # destination
 
+    mesh_args = flag_args(flags, "-m", 1)
+    mesh_output_file_name = None
     if "-m" in flags:
-        source_mesh_file_name = argv[-3]
-        destination_mesh_file_name = argv[-2]
-    else:
-        source_mesh_file_name = argv[-4]
-        destination_mesh_file_name = argv[-3]
+        print "Mesh output mode. Outputting registered mesh to '{0}'.".format(mesh_args[0])
+        mesh_output_file_name = mesh_args[0]
 
-    output_file_name = argv[-1]
+
+    if "-no-point-file" in flags:
+        source_mesh_file_name       = argv[-2]
+        destination_mesh_file_name  = argv[-1]
+        point_set_file_name         = None
+        output_file_name            = None
+    else:
+        source_mesh_file_name       = argv[-4]
+        destination_mesh_file_name  = argv[-3]
+        point_set_file_name         = argv[-2]
+        output_file_name            = argv[-1]
     
     try:
         source_mesh      = TriMesh.FromOBJ_FileName(source_mesh_file_name)
+        print "Source mesh loaded with {0} vertices.".format(len(source_mesh.vs))
     except AssertionError:
         print "Failed to load source: Something is wrong with the source mesh."
         exit(0)
 
     try:
         destination_mesh = TriMesh.FromOBJ_FileName(destination_mesh_file_name)
+        print "Destination mesh loaded with {0} vertices.".format(len(destination_mesh.vs))
     except AssertionError:
-        print "Failed to load source: Something is wrong with the source mesh."
+        print "Failed to load destination: Something is wrong with the destination mesh."
         exit(0)
 
     grasp_points = (None,None)
-    if "-m" not in flags:
-        mappings, grasp_points = PointMapping.from_file(argv[-2], source_mesh)
+    if point_set_file_name is not None:
+        mappings, grasp_points = PointMapping.from_file(point_set_file_name, source_mesh)
 
     if grasp_points == (None,None):
         print "Estimating grasp points..."
@@ -156,44 +154,29 @@ if __name__ == "__main__":
     source_grasp_point = grasp_points[0]
     transformed = source_mesh.copy()
 
-    if "-m" in flags:
-        print "Mesh output mode."
-        for i, algo in enumerate(algorithms_list):
-            iteration = algo(
-                source_mesh, destination_mesh,
-                source_grasp_point, grasp_points[1]
-            )
+    verbose = "-v" in flags
+    if verbose:
+        print "Verbose mode."
 
-            iteration.run()
+    for i, algo in enumerate(algorithms_list):
+        iteration = algo(
+            source_mesh, destination_mesh,
+            source_grasp_point, grasp_points[1],
+            verbose=verbose
+        )
 
-            transformed = iteration.transformed_mesh()
-            print "Finished transformation {0}/{1}.".format(i+1,
-                    len(algorithms_list))
+        iteration.run()
 
+        transformed = iteration.transformed_mesh()
+        print "Finished transformation {0}/{1}.".format(i+1,
+                len(algorithms_list))
+
+    if mesh_output_file_name is not None:
         # use the red texture that's already in testdata/
-        transformed.write_OBJ(output_file_name, "mtllib default.mtl\nusemtl defaultred")
+        transformed.write_OBJ(mesh_output_file_name, "mtllib default.mtl\nusemtl defaultred")
 
-        print "Wrote mesh to '{0}'.".format(output_file_name)
+        print "Wrote mesh to '{0}'.".format(mesh_output_file_name)
         print "Compare with '{0}'.".format(destination_mesh_file_name)
 
-    else: # default mode
-        for i, algo in enumerate(algorithms_list):
-            iteration = algo(
-                source_mesh, destination_mesh,
-                source_grasp_point, grasp_points[1]
-            )
-
-            iteration.run()
-
-            transformed = iteration.transformed_mesh()
-
-            for mapping in mappings:
-                iteration.register(mapping)
-
-            # move source fixed point
-            source_grasp_point, _ = iteration.transform(source_grasp_point)
-
-            print "Finished transformation {0}/{1}.".format(i+1,
-                    len(algorithms_list))
-
+    if output_file_name is not None:
         PointMapping.to_file(output_file_name, mappings)

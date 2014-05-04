@@ -48,9 +48,10 @@ MAX_SAMPLE_SIZE = 10
 class RadialAlgorithm(FixedPairRegistrationAlgorithm):
     def __init__(self, source_mesh, destination_mesh, 
                  source_fixed = None, destination_fixed = None, 
-                 max_iterations = 10):
+                 max_iterations = 10, verbose = False):
         super(RadialAlgorithm, self).__init__(source_mesh,
-                destination_mesh, source_fixed, destination_fixed)
+                destination_mesh, source_fixed, destination_fixed, verbose =
+                verbose)
         self.destination_nearest_neighbors = NearestNeighbors(n_neighbors=1, 
                 algorithm="kd_tree").fit(destination_mesh.vs)
 
@@ -129,7 +130,7 @@ class RadialAlgorithm(FixedPairRegistrationAlgorithm):
             sys.stdout.flush()
 
         result = scipy.optimize.minimize(self.rotate_and_get_energy, guess,
-                options = { 'maxiter': 10 })
+                options = { 'maxiter': 3 })
 
         if self.verbose:
             print "Final energy: {0}".format(self.rotate_and_get_energy(guess))
@@ -140,7 +141,7 @@ class RadialAlgorithm(FixedPairRegistrationAlgorithm):
         guesses = [k * 2 * math.pi / num_guesses for k in range(0, num_guesses)]
         self.source_as_mat = source_as_mat
 
-        results = map_async(self.make_guess, guesses)
+        results = map(self.make_guess, guesses)
 
         errors  = [self.rotate_and_get_energy(result.x) for result in results]
 

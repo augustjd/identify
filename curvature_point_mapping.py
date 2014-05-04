@@ -85,12 +85,11 @@ class CurvatureAlgorithm(RadialAlgorithm):
         A,b = from_affine(self.fixed_axis_rotation_matrix(theta))
         copy = (np.dot(A, self.source_as_mat.T).T + b)
         energy = self.Efit(copy)
-        with self.lock:
-            if energy < self.min_energy:
-                if self.verbose:
-                    print "New best energy:", energy
-                self.min_energy = energy
-                self.vertices = np.asarray(copy)
+        if energy < self.min_energy:
+            if self.verbose:
+                print "New best energy:", energy
+            self.min_energy = energy
+            self.vertices = np.asarray(copy)
         return energy
 
 class CurvatureIcp(IcpAlgorithm):

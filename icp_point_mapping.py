@@ -16,7 +16,8 @@ from operator import add
 from objfile import *
 class IcpAlgorithm(FixedPairRegistrationAlgorithm): 
     def __init__(self, source_mesh, destination_mesh, 
-                 source_fixed_point = None, destination_fixed_point = None, 
+                 source_fixed_point = None, destination_fixed_point = None,
+                 verbose = False,
                  max_iterations = 100):
         if source_fixed_point is None:
             source_fixed_point = center_of_mass(source_mesh.vs)
@@ -24,11 +25,8 @@ class IcpAlgorithm(FixedPairRegistrationAlgorithm):
             destination_fixed_point = center_of_mass(destination_mesh.vs)
 
         super(IcpAlgorithm, self).__init__(source_mesh,
-                destination_mesh, source_fixed_point, destination_fixed_point)
-
-        print "Identifying points Source: {0} Destination: {1}".format(
-                    self.source_fixed, self.destination_fixed
-                )
+                destination_mesh, source_fixed_point, destination_fixed_point,
+                verbose = verbose)
 
         self.matrix = None
 
@@ -41,7 +39,8 @@ class IcpAlgorithm(FixedPairRegistrationAlgorithm):
                                  self.destination_mesh.vs, 
                                  self.source_fixed, 
                                  self.destination_fixed,
-                                 self.max_iterations)
+                                 self.max_iterations,
+                                 verbose = self.verbose)
 
         self.inverse = np.linalg.inv(self.matrix)
         self.global_confidence = 1 - error
@@ -77,7 +76,7 @@ CONVERGENCE_THRESHOLD = 1.0e-8
 
 DO_SCALE = True
 
-def scaling_step(P, X):
+def scaling_step(P, X, verbose = False):
     """Returns a matrix M which scales X to best match the dimensions of P,
     by taking the length of the diagonal of their bounding boxes."""
     P_diagonal_length = estimate_max_diagonal(P)
@@ -88,7 +87,7 @@ def scaling_step(P, X):
     else:
         scale_factor = P_diagonal_length / X_diagonal_length
 
-    if VERBOSE_DEFAULT:
+    if verbose:
         print "Scaling X by factor of " + str(scale_factor)
 
     return scaling_matrix(np.array([scale_factor, scale_factor, scale_factor]))
@@ -169,8 +168,6 @@ DO_SHAKE = True
 SHAKE_AMOUNT = 5.5
 SHAKE_THRESHOLD = 1e-6
 
-VERBOSE = False
-
 DO_FLIP = False
 
 def get_flip_matrix():
@@ -226,7 +223,7 @@ class IcpState:
                 )
         # return mean_square_error(self.P, self.X_copy)
 
-def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = None):
+def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = None, verbose = False):
     """Returns the transformation matrix to take the point cloud X to the
     point cloud P by rigid transformation. If up and ux are specified, rotations
     and translations are relative to up on P and ux on X, which remain fixed in the
@@ -243,7 +240,7 @@ def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = 
 
     state = IcpState(P, X, ux, up, P_nearest_neighbors)
 
-    state.apply_transform_to_all(scaling_step(P, X))
+    state.apply_transform_to_all(scaling_step(P, X, verbose))
 
     best_global_matrix = state.global_matrix
 
@@ -272,7 +269,7 @@ def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = 
 
         # error should decrease with every step, otherwise shake
         if DO_SHAKE and (last_error < current_error or abs(last_error - current_error) < SHAKE_THRESHOLD):
-            if VERBOSE:
+            if verbose:
                 print "Error has not improved. Shaking."
             
             shake = get_shake_matrix()
@@ -286,7 +283,7 @@ def icp(P, X, up = None, ux = None, max_iterations = 100, P_nearest_neighbors = 
 
                 DO_FLIP = False
 
-        if VERBOSE:
+        if verbose:
             print "Iteration {0:>3}: Last Error: {1:f} Lowest Error {2:f} up->ux distance {3}".format(
                     x, last_error, lowest_error, dist(state.up, state.ux)
                     )

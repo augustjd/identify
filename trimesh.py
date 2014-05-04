@@ -947,8 +947,6 @@ class TriMesh( object ):
         
         
         out.close()
-        
-        print '[OBJ written to "%s"]' % (fname,)
     
     def write_OFF( self, fname ):
         '''

@@ -10,10 +10,8 @@ def clamp(val, low, high):
     return max(min(val, high), low)
 
 
-VERBOSE_DEFAULT = False
-
 class RegistrationAlgorithm(object):
-    def __init__(self, source_mesh, destination_mesh):
+    def __init__(self, source_mesh, destination_mesh, verbose = False):
         assert(isinstance(source_mesh, TriMesh) and 
                isinstance(destination_mesh, TriMesh))
 
@@ -29,7 +27,7 @@ class RegistrationAlgorithm(object):
         self.destination_longest_diagonal = (
                 estimate_max_diagonal(destination_mesh.vs))
 
-        self.verbose = VERBOSE_DEFAULT
+        self.verbose = verbose
 
     def run(self):
         pass
@@ -78,6 +76,8 @@ class RegistrationAlgorithm(object):
             return self.transform(x)[0]
 
         transform_trimesh(result, one_return_transform)
+        for i in range(len(result.vs)):
+            result.vs[i], _ = self.project(result.vs[i])
 
         return result
 
@@ -91,11 +91,13 @@ class RegistrationAlgorithm(object):
 
 class FixedPairRegistrationAlgorithm(RegistrationAlgorithm):
     def __init__(self, source_mesh, destination_mesh, 
-            source_fixed_point = None, destination_fixed_point = None):
-        super(FixedPairRegistrationAlgorithm, self).__init__(source_mesh, destination_mesh)
+            source_fixed_point = None, destination_fixed_point = None, verbose = False):
+        super(FixedPairRegistrationAlgorithm, self).__init__(source_mesh,
+                destination_mesh)
 
         self.source_fixed = source_fixed_point 
         self.destination_fixed = destination_fixed_point
+        self.verbose = verbose
 
 class PointMapping:
     """Encapsulates the mapping of a point of interest to another point of
