@@ -38,8 +38,7 @@ grasp-points <source-x-coord> <source-y-coord> <source-z-coord> <dest-x-coord> <
 `<label>` is a string label with no spaces and no quotation marks, used to
 identify this particular point for humans. Output will preserve this labeling.
 
-_NOTE_: `<label>` cannot be `grasp-points`, since that name is reserved for
-specifying the identity points on the two meshes, as shown below:
+_NOTE_: `<label>` cannot be `grasp-points`, since that name is reserved for specifying the identity points on the two meshes, as shown below:
 
 `grasp-points` is an optional line used to specify a point in source
 coordinates and a point in destination coordinates that will be guaranteed to
@@ -81,11 +80,16 @@ actual points on *D*, even if the correspondence is incorrect.
 Usage
 -----
 ```
-./identify.py [flags] <path to .obj of S model> <path to .obj of D model> <path to point set Q> <path to output point set file>
+./identify.py [flags] <source_file> <destination_file> <point_set_file> <output_file>
 ```
 Source and destination files should be in standard `.obj` format. Point set
 *Q* should be in the format specified above, and the output file will be in
 the output format specified above.
+
+If you don't need a point set matching, but just want a mesh output, invoke as:
+```
+./identify.py -no-point-file -m [mesh_output_file] [flags] <source_file> <destination_file>
+```
 
 Flags
 -----
@@ -93,21 +97,8 @@ Flags
 Flag|Use
 ----|---
 `-h`|prints this help message, then exits.
-`-m`|mesh output mode - instead of a point set file, save the entire cloud under the mapping as a .obj file to &lt;output&#96;file&gt;
+`-m [mesh_output_file]`|mesh output mode - save the entire cloud under the mapping as a .obj file to `[mesh_output_file]`
 `-v`|verbose output mode
-`--convergence=[val]`|run identification until matching confidence exceeds val (default: 0.1)
-`--algorithm=[val]`|use specified algorithm to perform registration (default: icp).  valid options: icp
-
-Examples
---------
-```
-./identify.py maya_shorts.obj kinect_shorts.obj Q.txt output.txt
-```
-
-BOUNDARY POINTS
-boundary points are connected to edges which do not have 2 faces.
-
-Next steps:
- - Smoothing with Maya and MEL
- - Find Curvatures (averge mean curvatures on all incident edges?)
- - Identify curvatures with rigid Radial registration
+`-no-point-file`|Suppress output
+`-i [s-index] [d-index]`|ensure that the mapping identifies the point of index s-index on the source mesh and d-index on the destination mesh. By default, centers of mass will be identified.
+`--algorithm=[val]`|use specified algorithm to perform registration (default: icp). valid options: icp, radial, curvatureicp, curvature, simple, energy, li
