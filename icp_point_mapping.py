@@ -122,7 +122,7 @@ def cross_covariance(P, X,
     if ux == None:
         ux = center_of_mass(X)
 
-    return reduce(add, [np.outer(X[i] - ux, p - up) for i, p in enumerate(matching)]) / float(len(P))
+    return sum(np.outer(X[i] - ux, p - up) for i, p in enumerate(matching)) / float(len(P))
 
 
 def optimal_rotation_matrix(P, X, P_nearest_neighbors = None, up = None, ux = None):
