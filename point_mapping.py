@@ -3,12 +3,13 @@ from sklearn.neighbors import NearestNeighbors
 import numpy as np 
 
 from trimesh import TriMesh
-from geometry import dist, estimate_max_diagonal, transform_trimesh, center_of_mass, nearest_neighbor_distance
+from geometry import (dist, estimate_max_diagonal, transform_trimesh,
+                      center_of_mass, nearest_neighbor_distance,
+                      get_mesh_of_high_curvature)
 
 def clamp(val, low, high):
     """Clamps val to the range [low, high]."""
     return max(min(val, high), low)
-
 
 class RegistrationAlgorithm(object):
     def __init__(self, source_mesh, destination_mesh, verbose = False):
@@ -81,13 +82,26 @@ class RegistrationAlgorithm(object):
 
         return result
 
-    def point_error(self, pt):
-        return nearest_neighbor_distance(pt, self.destination_nearest_neighbors)**2
+    def point_error(self, pt, nn = None):
+        if nn is None:
+            nn = self.destination_nearest_neighbors
+
+        return nearest_neighbor_distance(pt, nn)**2
 
     def fit_error(self):
         mesh = self.transformed_mesh()
 
         return sum(map(self.point_error, mesh.vs))
+
+    def curvature_error(self):
+        mesh = self.transformed_mesh()
+        high_curvature_source = get_mesh_of_high_curvature(mesh)
+        high_curvature_destination = get_mesh_of_high_curvature(self.destination_mesh)
+
+        nn = (NearestNeighbors(n_neighbors=1,
+            algorithm="kd_tree").fit(high_curvature_destination.vs))
+
+        return sum(map(lambda pt: self.point_error(pt, nn), mesh.vs))
 
 class FixedPairRegistrationAlgorithm(RegistrationAlgorithm):
     def __init__(self, source_mesh, destination_mesh, 

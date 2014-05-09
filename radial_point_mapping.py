@@ -181,11 +181,14 @@ class RadialAlgorithm(FixedPairRegistrationAlgorithm):
 
         self.transformations.append(final_rotation)
 
-        print "\n".join(map(str, self.transformations))
+        if self.verbose:
+            print "\n".join(map(str, self.transformations))
 
         self.A, self.b = from_affine(compose(*reversed(self.transformations)))
-        print self.A
-        print self.b
+
+        if self.verbose:
+            print self.A
+            print self.b
 
     def transform(self, source_point):
         # TODO utilize the error above to provide more info to caller
