@@ -284,22 +284,14 @@ def curvature_of_edge(he, mesh):
         # flip the halfedge
         he = mesh.halfedges[he.opposite_he]
 
+    return he.get_curvature(mesh)
 
-    edge_array = [mesh.vs[edge_indices[0]], 
-                  mesh.vs[edge_indices[1]]]
-    edge_vector = edge_array[1] - edge_array[0]
-
-    left_normal  = mesh.face_normals[he.face]
-    right_normal = mesh.face_normals[mesh.halfedges[he.opposite_he].face]
-
-    # see http://torus.math.uiuc.edu/jms/Papers/dscrv.pdf section 4.3
-    return np.cross(edge_vector, left_normal) - np.cross(edge_vector, right_normal)
-
-def curvature_at_point(i, mesh):
+def curvature_at_point(tup):
+    i, mesh = tup
     """Returns the curvature at the point at index i on mesh.
     NOTE: If the point is on a boundary, returns +inf."""
     if mesh.vertex_is_boundary(i):
-        return float("+inf")
+        return i, float("+inf")
 
     vertex_neighbors = mesh.vertex_vertex_neighbors(i)
     # some halfedges are directed outward, some inward. we want all of them.
@@ -313,15 +305,16 @@ def curvature_at_point(i, mesh):
         if ingoing:
             he_neighbors.append(mesh.halfedges[ingoing])
 
-    return np.linalg.norm(sum(map(lambda he: curvature_of_edge(he, mesh), he_neighbors))) / 2.0
+    return i, np.linalg.norm(sum(map(lambda he: curvature_of_edge(he, mesh), he_neighbors))) / 2.0
 
 
 def get_indices_of_high_curvature(mesh, cutoff_percentile = 0.15):
     """Returns an array of indices of the points on mesh whose absolute value
     of mean curvature is above the cutoff_percentile, by default, this means
     its curvature is higher than 15% of points on the mesh."""
-    curvature_of_points = map(lambda i: (i, abs(curvature_at_point(i, mesh))), range(len(mesh.vs)))
-    curvature_of_points.sort(key=lambda tup: tup[1])
+    work = [(i, mesh) for i in range(len(mesh.vs))]
+    curvature_of_points = map(curvature_at_point, work)
+    curvature_of_points.sort(key=lambda i: i[1])
 
     cutoff_index = int(math.floor((1 - cutoff_percentile) * len(curvature_of_points)))
 
@@ -331,9 +324,13 @@ def get_mesh_of_high_curvature(mesh, cutoff_percentile = 0.15):
     """Returns a copy of mesh which consists only of points whose absolute
     value of mean curvature is above the cutoff_percentile, by default, this
     means its curvature is higher than 15% of points on the mesh."""
+    from multiprocessing import Pool, cpu_count
     copy = mesh.copy()
-    curvature_of_points = map(lambda i: (i, abs(curvature_at_point(i, mesh))), range(len(mesh.vs)))
-    curvature_of_points.sort(key=lambda tup: tup[1])
+
+    work = [(i, mesh) for i in range(len(mesh.vs))]
+    #curvature_of_points = Pool(processes=cpu_count()).map(curvature_at_point, work)
+    curvature_of_points = map(curvature_at_point, work)
+    curvature_of_points.sort(key=lambda i: i[1])
 
     cutoff_index = int(math.floor((1 - cutoff_percentile) * len(curvature_of_points)))
     copy.remove_vertex_indices(map(lambda tup: tup[0], curvature_of_points[:cutoff_index]))

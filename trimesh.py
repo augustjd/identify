@@ -11,6 +11,8 @@ def zerosf( *args, **kwargs ):
     kwargs['dtype'] = float
     return zeros( *args, **kwargs )
 
+VERBOSE = False
+
 class TriMesh( object ):
     def __init__( self ):
         self.vs = []
@@ -276,9 +278,20 @@ class TriMesh( object ):
             self.edge = -1
             self.opposite_he = -1
             self.next_he = -1
+            self.curvature = None
+
+        def get_curvature(self, mesh):
+            if self.curvature is None:
+                # see http://torus.math.uiuc.edu/jms/Papers/dscrv.pdf section 4.3
+                opposite_he = mesh.halfedges[self.opposite_he]
+                self.curvature = (cross(mesh.edges[self.edge], mesh.face_normals[self.face]) - 
+                                  cross(mesh.edges[self.edge], mesh.face_normals[opposite_he.face]))
+
+            return self.curvature
 
         def __str__(self):
             return "<Halfedge to vertex:{0}>".format(self.to_vertex)
+
     
     def update_halfedges( self ):
         '''
@@ -321,7 +334,7 @@ class TriMesh( object ):
             he0.face = directed_edge2face_index( edge )
             he0.to_vertex = edge[1]
             he0.edge = ei
-            
+
             he1 = self.HalfEdge()
             ## The face will be -1 if it is a boundary half-edge.
             he1.face = directed_edge2face_index( edge[::-1] )
@@ -395,7 +408,8 @@ class TriMesh( object ):
                 originating_vertex, Set()
                 ).add( hei )
             if len( vertex2outgoing_boundary_hei[ originating_vertex ] ) > 1:
-                print 'Butterfly vertex encountered'
+                if VERBOSE:
+                    print 'Butterfly vertex encountered'
         
         ## For each boundary halfedge, make its next_he one of the boundary halfedges
         ## originating at its to_vertex.
@@ -908,7 +922,8 @@ class TriMesh( object ):
         ## If we have uv's, then we will reach 1MB with (1024*1024/(2*16+2*20)) = 14563 vertices.
         ## Print a warning if we're going to save a mesh much larger than a megabyte.
         if len( self.vs ) > 15000:
-            print '[Writing a large OBJ to "%s"...]' % (fname,)
+            if VERBOSE:
+                print '[Writing a large OBJ to "%s"...]' % (fname,)
         
         
         out = file( fname, 'w' )
@@ -965,7 +980,8 @@ class TriMesh( object ):
         
         out.close()
         
-        print '[OFF written to "%s"]' % (fname,)
+        if VERBOSE:
+            print '[OFF written to "%s"]' % (fname,)
 
 ## We can't pickle anything that doesn't have a name visible at module scope.
 ## In order to allow pickling of class TriMesh, we'll make a reference to the inner HalfEdge class
