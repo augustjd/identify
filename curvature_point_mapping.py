@@ -49,7 +49,7 @@ class CurvatureAlgorithm(RadialAlgorithm):
     def __init__(self, source_mesh, destination_mesh, 
                  source_fixed = None, destination_fixed = None, 
                  max_iterations = 10):
-        super(RadialAlgorithm, self).__init__(source_mesh,
+        super(CurvatureAlgorithm, self).__init__(source_mesh,
                 destination_mesh, source_fixed, destination_fixed)
 
         self.iteration = 1
@@ -106,7 +106,8 @@ class CurvatureIcp(IcpAlgorithm):
                                  destination_high_curvature.vs, 
                                  self.source_fixed, 
                                  self.destination_fixed,
-                                 self.max_iterations)
+                                 300,
+                                 verbose = self.verbose)
 
         self.inverse = np.linalg.inv(self.matrix)
         self.global_confidence = 1 - error

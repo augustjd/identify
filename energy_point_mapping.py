@@ -17,13 +17,12 @@ import trimesh
 
 from icp_point_mapping import scaling_step
 
-VERBOSE = True
 MAX_SAMPLE_SIZE = 500
 
 class SimpleEnergyAlgorithm(FixedPairRegistrationAlgorithm):
     def __init__(self, source_mesh, destination_mesh, 
                  source_fixed_point = None, destination_fixed_point = None, 
-                 max_iterations = 300):
+                 max_iterations = 300, verbose = False):
         super(SimpleEnergyAlgorithm, self).__init__(source_mesh,
                 destination_mesh, source_fixed_point, destination_fixed_point)
         self.source_nearest_neighbors = NearestNeighbors(n_neighbors=1, 
@@ -89,7 +88,7 @@ class SimpleEnergyAlgorithm(FixedPairRegistrationAlgorithm):
 class EnergyAlgorithm(FixedPairRegistrationAlgorithm):
     def __init__(self, source_mesh, destination_mesh, 
                  source_fixed_point = None, destination_fixed_point = None, 
-                 max_iterations = 10):
+                 max_iterations = 10, verbose = False):
 
         super(EnergyAlgorithm, self).__init__(source_mesh,
                 destination_mesh, source_fixed_point, destination_fixed_point)
@@ -105,13 +104,15 @@ class EnergyAlgorithm(FixedPairRegistrationAlgorithm):
 
         self.scaling_factor = 30
 
+        self.verbose = verbose
+
     def Efit(self, transformed_points):
         sample = random.sample(transformed_points, 
                                min(len(transformed_points), MAX_SAMPLE_SIZE)
                  )
         return self.scaling_factor * sum(nearest_neighbor_distance(pt, self.destination_nearest_neighbors)**2 for pt in sample)
 
-    def grad(f, x0, d = 1e-2):
+    def grad(self, f, x0, d = 1e-2):
         n       = len(x0)
         result  = np.zeros(n)
         dx      = np.zeros(n)
@@ -132,14 +133,14 @@ class EnergyAlgorithm(FixedPairRegistrationAlgorithm):
 
         fit_energy = self.Efit(transformed_points)
 
-        print "Energy Function Invocation {0}: Energy {1}".format(self.iteration, fit_energy)
+        if self.verbose:
+            print "Energy Function Invocation {0}: Energy {1}".format(self.iteration, fit_energy)
 
         self.iteration += 1
 
         return fit_energy
 
     def print_energy(self, x):
-        print "Hello!"
         fit_energy = self.Efit(x)
 
     def unpack_flat_array(self, arr):

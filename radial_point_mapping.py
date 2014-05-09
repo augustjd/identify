@@ -29,7 +29,7 @@ Algorithm:
 """
 from point_mapping import *
 import numpy as np
-import scipy
+import scipy.optimize
 from geometry import *
 
 import random
@@ -42,9 +42,7 @@ from icp_point_mapping import scaling_step
 
 from multithreading_help import *
 
-VERBOSE = True
-MAX_SAMPLE_SIZE = 10
-
+MAX_SAMPLE_SIZE = 10 
 class RadialAlgorithm(FixedPairRegistrationAlgorithm):
     def __init__(self, source_mesh, destination_mesh, 
                  source_fixed = None, destination_fixed = None, 
@@ -63,7 +61,6 @@ class RadialAlgorithm(FixedPairRegistrationAlgorithm):
         self.transformations = []
 
         self.min_energy = float('+inf')
-        self.verbose = VERBOSE
 
     MAX_SAMPLE_SIZE = 500
     def Efit(self, transformed_points):

@@ -22,7 +22,7 @@ from time import time
 class LiAlgorithm(FixedPairRegistrationAlgorithm):
     def __init__(self, source_mesh, destination_mesh, 
                  source_fixed_point = None, destination_fixed_point = None, 
-                 max_iterations = 100):
+                 max_iterations = 100, verbose = False):
         super(LiAlgorithm, self).__init__(source_mesh,
                 destination_mesh, source_fixed_point, destination_fixed_point)
 
@@ -52,6 +52,8 @@ class LiAlgorithm(FixedPairRegistrationAlgorithm):
         self.alpha_grasp  = 1000
 
         self.last_energy = float("inf")
+
+        self.verbose = verbose
 
     def energy(self, arr):
         global_rot, global_tr, A_matrices, b_vectors, confidences = self.unpack_flat_array(arr)
@@ -182,12 +184,12 @@ class LiAlgorithm(FixedPairRegistrationAlgorithm):
 
         return dist(source_fixed_tr, self.destination_fixed)
 
-    def flatten_affine_transform(A):
+    def flatten_affine_transform(self, A):
         """Returns a flat np.array containing the important 12 components of
         the affine transform A."""
         return np.reshape(A[0:3, 0:4], 12)
 
-    def unflatten_affine_transform(arr):
+    def unflatten_affine_transform(self, arr):
         result = np.identity(4)
         result[0:3,0:4] = np.reshape(arr, (3,4))
         return result
@@ -252,7 +254,7 @@ class LiAlgorithm(FixedPairRegistrationAlgorithm):
 
     transform_vertex = staticmethod(transform_vertex)
 
-    def transform(source_point):
+    def transform(self, source_point):
         index = nearest_neighbor_index(source_point, self.source_nearest_neighbors)
         result = transform_vertex(self.global_rot, self.global_trans,
                 self.A_matrices[index], self.b_vectors[index])
@@ -277,7 +279,7 @@ def weights_of_nearest(v, knearest, dmax):
     #              -------------------- 
     #         sum (1 - ||vj - xp||/dmax)
     #         p=1..k                    
-    numerators  = [1 - num.linalg.norm(v - xi, 2)/dmax for xi in knearest]
+    numerators  = [1 - np.linalg.norm(v - xi, 2)/dmax for xi in knearest]
     denominator = sum(numerators)
 
     return [num / denominator for num in numerators]
