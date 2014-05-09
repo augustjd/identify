@@ -58,7 +58,6 @@ def flag_value(flags, key):
 def flag_args(flags, key, argc):
     """Searches flags for the last flag matching key. If one exists, returns
     it and the next argc arguments."""
-    indices = reversed(range(len(flags)))
     match = last_flag_matching(flags, key)
     if match is not None:
         match_index = flags.index(match)
@@ -79,6 +78,10 @@ VALID_ALGORITHMS = {
 if __name__ == "__main__":
     from sys import *
     flags = argv[:-3]
+    
+    if "-no-point-file" in flags:
+        flags = argv[:-2]
+
 
     if len(argv) < 4 or "-h" in flags:
         print_usage()
