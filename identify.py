@@ -212,6 +212,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #import cProfile
-    #print cProfile.run('main()')
-

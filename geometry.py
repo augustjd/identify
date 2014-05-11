@@ -20,7 +20,10 @@ def unit_vector(v):
 def center_of_mass(cloud):
     """Returns the center of mass, or average point,
     in the point cloud 'cloud'."""
-    return reduce(add, cloud) / float(len(cloud))
+    if type(cloud) is np.array:
+        return cloud.sum() / len(cloud)
+    else:
+        return reduce(add, cloud) / float(len(cloud))
 
 def bounding_box(cloud):
     """Returns two points, opposing corners of the minimum
@@ -324,7 +327,9 @@ def estimate_grasp_point(vs, sample_size = 5):
     """Estimates the grasp point on mesh by taking an average of the topmost
     (highest Y) sample_size points on mesh."""
     actual_sample_size = min(len(vs), sample_size)
-    return center_of_mass(sorted(vs, key=lambda v: v[1])[-actual_sample_size:])
+    import trimesh
+    vsarray = trimesh.asarray(vs)
+    return center_of_mass(vsarray[vsarray[:,1].argsort()][-actual_sample_size:])
 
 def curvature_of_edge(he, mesh):
     """Computes the curvature at the provided halfedge of the TriMesh mesh."""

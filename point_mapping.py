@@ -25,8 +25,7 @@ class RegistrationAlgorithm(object):
                 NearestNeighbors(n_neighbors=1,
                     algorithm="kd_tree").fit(destination_mesh.vs))
 
-        self.destination_longest_diagonal = (
-                estimate_max_diagonal(destination_mesh.vs))
+        self.destination_longest_diagonal = None
 
         self.verbose = verbose
 
@@ -65,6 +64,9 @@ class RegistrationAlgorithm(object):
         """Returns a confidence metric 0.0 < c < 1.0 corresponding to a
         projection in which a point P was moved to a point Q that is dist
         away."""
+        if self.destination_longest_diagonal is None:
+            self.destination_longest_diagonal = (
+                    estimate_max_diagonal(destination_mesh.vs))
         raw = 1.0 - (distance / self.destination_longest_diagonal)**(tolerance)
         return clamp(raw, 0.0, 1.0)
 
