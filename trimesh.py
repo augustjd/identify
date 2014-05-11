@@ -284,8 +284,8 @@ class TriMesh( object ):
             if self.curvature is None:
                 # see http://torus.math.uiuc.edu/jms/Papers/dscrv.pdf section 4.3
                 opposite_he = mesh.halfedges[self.opposite_he]
-                self.curvature = (cross(mesh.edges[self.edge], mesh.face_normals[self.face]) - 
-                                  cross(mesh.edges[self.edge], mesh.face_normals[opposite_he.face]))
+                self.curvature = cross(mesh.edges[self.edge], 
+                    mesh.face_normals[self.face] - mesh.face_normals[opposite_he.face])
 
             return self.curvature
 
