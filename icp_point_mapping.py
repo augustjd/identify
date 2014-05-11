@@ -77,8 +77,38 @@ CONVERGENCE_THRESHOLD = 1.0e-8
 DO_SCALE = True
 
 def scaling_step(P, X, verbose = False):
+    """Returns a matrix M which scales X to best match the dimensions of P, 
+    by finding the average lengths in each of the principal components for
+    each mesh, and scaling so that the volumes of their products are the
+    same."""
+    if not DO_SCALE:
+        return np.eye(len(P[0]))
+
+    def scaled_principal_axes(P):
+        centered = P - center_of_mass(P)
+        n    = len(P)
+        axes = principal_axes(P)
+
+        def average_extent(axis, centered):
+            return np.average(np.abs(np.dot(centered, axis)))
+
+        return np.array([average_extent(axis, centered) for axis in axes])
+
+    P_axes = scaled_principal_axes(P)
+    X_axes = scaled_principal_axes(X)
+
+    scale_factor = (P_axes.prod() / X_axes.prod())**(1.0/3.0)
+
+    if verbose:
+        print "Scaling X by factor of {0}".format(scale_factor)
+
+    return scaling_matrix(np.array([scale_factor, scale_factor, scale_factor]))
+    
+
+def simple_scaling_step(P,X, verbose = False):
     """Returns a matrix M which scales X to best match the dimensions of P,
-    by taking the length of the diagonal of their bounding boxes."""
+    by taking the length of the longest axis on each, and determining the
+    scaling factor needed to make them the same length."""
     P_diagonal_length = estimate_max_diagonal(P)
     X_diagonal_length = estimate_max_diagonal(X)
 
