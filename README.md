@@ -98,6 +98,7 @@ Flag|Use
 ----|---
 `-h`|prints this help message, then exits.
 `-m [mesh_output_file]`|mesh output mode - save the entire cloud under the mapping as a .obj file to `[mesh_output_file]`
+`-projectm [mesh_output_file]`|projected mesh output mode - save the entire cloud under the mapping, projected down onto the destination mesh as a .obj file to `[mesh_output_file]`
 `-v`|verbose output mode
 `-no-point-file`|Suppress output
 `-i [s-index] [d-index]`|ensure that the mapping identifies the point of index s-index on the source mesh and d-index on the destination mesh. By default, centers of mass will be identified.

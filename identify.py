@@ -26,6 +26,10 @@ def print_usage():
     print "\t-m [mesh_output_file]:\tmesh output mode - in addition to a point set file, save the"
     print "\t\t\t\tentire cloud under the mapping as a .obj file to [mesh_output_file]."
     print
+    print "\t-projectm [mesh_output_file]:\tprojected mesh output mode - in addition to a point set file, save the"
+    print "\t\t\t\tentire cloud under the mapping, projected onto the destination as a .obj file to "
+    print "\t\t\t\t[mesh_output_file]."
+    print
     print ("\t-i [s-index] [d-index]:\tensure that the mapping identifies the " +
         "point of index s-index on")
     print "\t\t\t\tS and of d-index on D. By default, the centers of mass of S"
@@ -65,6 +69,15 @@ def flag_args(flags, key, argc):
     else:
         return None
 
+def all_flag_args(flags, key, argc):
+    """Searches flags for the flags matching key. For each match,
+    the subsequent argc args will be provided."""
+    match_indices = filter(lambda i: flags[i] == key, range(len(flags)))
+    if argc == 1:
+        return [flags[i + 1] for i in match_indices]
+    elif argc > 1:
+        return [flags[i + 1 : i + argc + 1] for i in match_indices]
+
 VALID_ALGORITHMS = {
         'icp':       IcpAlgorithm,
         'li':        LiAlgorithm,
@@ -75,13 +88,12 @@ VALID_ALGORITHMS = {
         'curvatureicp': CurvatureIcp
         }
 
-if __name__ == "__main__":
-    from sys import *
+from sys import *
+def main():
     flags = argv[:-3]
     
     if "-no-point-file" in flags:
         flags = argv[:-2]
-
 
     if len(argv) < 4 or "-h" in flags:
         print_usage()
@@ -112,12 +124,15 @@ if __name__ == "__main__":
         ux_index = int(index_args[0]) # source
         up_index = int(index_args[1]) # destination
 
-    mesh_args = flag_args(flags, "-m", 1)
-    mesh_output_file_name = None
+    mesh_output_file_names = all_flag_args(flags, "-m", 1)    
     if "-m" in flags:
-        print "Mesh output mode. Outputting registered mesh to '{0}'.".format(mesh_args[0])
-        mesh_output_file_name = mesh_args[0]
+        print "Mesh output mode. Outputting registered meshes to {0}.".format(
+                ",".join(mesh_output_file_names))
 
+    projected_mesh_output_file_names = all_flag_args(flags, "-projectm", 1)    
+    if "-projectm" in flags:
+        print "Projected mesh output mode. Outputting registered meshes to {0}.".format(
+                ",".join(mesh_output_file_names))
 
     if "-no-point-file" in flags:
         source_mesh_file_name       = argv[-2]
@@ -174,12 +189,29 @@ if __name__ == "__main__":
         print "Finished transformation {0}/{1}.".format(i+1,
                 len(algorithms_list))
 
-    if mesh_output_file_name is not None:
+    for path in mesh_output_file_names:
         # use the red texture that's already in testdata/
-        transformed.write_OBJ(mesh_output_file_name, "mtllib default.mtl\nusemtl defaultred")
+        transformed.write_OBJ(path, "mtllib default.mtl\nusemtl defaultred")
 
-        print "Wrote mesh to '{0}'.".format(mesh_output_file_name)
+        print "Wrote mesh to '{0}'.".format(path)
+
+    if len(projected_mesh_output_file_names) > 0:
+        projected = iteration.projected_mesh()
+        for path in projected_mesh_output_file_names:
+            # use the red texture that's already in testdata/
+            projected.write_OBJ(path, "mtllib default.mtl\nusemtl defaultred")
+
+            print "Wrote mesh to '{0}'.".format(path)
+
+    if (len(mesh_output_file_names) > 0 or 
+            len(projected_mesh_output_file_names) > 0):
         print "Compare with '{0}'.".format(destination_mesh_file_name)
 
     if output_file_name is not None:
         PointMapping.to_file(output_file_name, mappings)
+
+if __name__ == "__main__":
+    main()
+    #import cProfile
+    #print cProfile.run('main()')
+

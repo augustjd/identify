@@ -77,6 +77,13 @@ class RegistrationAlgorithm(object):
             return self.transform(x)[0]
 
         transform_trimesh(result, one_return_transform)
+
+        return result
+
+    def projected_mesh(self):
+        """Returns a copy of the source mesh transformed by the registration,
+        then projected down onto the destination mesh."""
+        result = self.transformed_mesh()
         for i in range(len(result.vs)):
             result.vs[i], _ = self.project(result.vs[i])
 
