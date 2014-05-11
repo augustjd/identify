@@ -42,13 +42,12 @@ import trimesh
 from icp_point_mapping import *
 from radial_point_mapping import RadialAlgorithm
 
-VERBOSE = False
 MAX_SAMPLE_SIZE = 10
 
 class CurvatureAlgorithm(RadialAlgorithm):
     def __init__(self, source_mesh, destination_mesh, 
                  source_fixed = None, destination_fixed = None, 
-                 max_iterations = 10):
+                 max_iterations = 10, verbose = False):
         super(CurvatureAlgorithm, self).__init__(source_mesh,
                 destination_mesh, source_fixed, destination_fixed)
 
