@@ -194,6 +194,56 @@ def scaling_matrix(dv):
 
     return M
 
+def max_eigenvector(eigenvalues, eigenvectors):
+    """Sorts the eigenvectors, then picks the eigenvector with the maximum eigenvalue."""
+    return eigenvectors[np.argsort(eigenvalues)[-1]]
+
+def principal_axis(cloud):
+    """Returns the principal axis of point cloud cloud, the eigenvectors
+    of its covariant matrix."""
+    center   = center_of_mass(cloud)
+    centered = cloud - center
+
+    A = np.sum(np.outer(dif, dif) for dif in centered)
+    eigenvalues, eigenvectors = np.linalg.eig(A)
+
+    return max_eigenvector(eigenvalues, eigenvectors)
+
+def principal_axes(cloud, n_components = 3):
+    """Returns the principal components of the point cloud cloud
+    as an np.array.
+    
+    Relies on the PCA decomposition implementation in sklearn."""
+    from sklearn.decomposition import PCA
+    pca = PCA(n_components = n_components)
+    pca.fit(cloud)
+
+    return pca.components_
+
+# Tried to implement my own here, but 
+#def principal_axes(cloud):
+#    dimensions = len(cloud[0])
+#
+#    def remove_component(cloud, component):
+#        return cloud - np.outer(np.dot(cloud, component), component)
+#
+#    components = [np.array([0,0,0])]
+#
+#    center = center_of_mass(cloud)
+#    copy   = cloud.copy()
+#    copy   = copy - center
+#
+#    for d in range(dimensions):
+#        copy = remove_component(copy, components[-1])
+#
+#        A = np.sum(np.outer(v, v) for v in copy)
+#        eigenvalues, eigenvectors = np.linalg.eig(A)
+#
+#        principal = max_eigenvector(eigenvalues, eigenvectors)
+#        components.append(principal)
+#
+#    return components[1:]
+
 def promote(M, w = 1):
     """Promotes the 3x3 matrix M to a 4x4 matrix by just adding zeros. Entry
     4,4 will be equal to w (useful for translation matrices)."""
@@ -308,10 +358,10 @@ def curvature_at_point(tup):
     return i, np.linalg.norm(sum(map(lambda he: curvature_of_edge(he, mesh), he_neighbors))) / 2.0
 
 
-def get_indices_of_high_curvature(mesh, cutoff_percentile = 0.15):
+def get_indices_of_high_curvature(mesh, cutoff_percentile = 0.25):
     """Returns an array of indices of the points on mesh whose absolute value
     of mean curvature is above the cutoff_percentile, by default, this means
-    its curvature is higher than 15% of points on the mesh."""
+    its curvature is higher than 25% of points on the mesh."""
     work = [(i, mesh) for i in range(len(mesh.vs))]
     curvature_of_points = map(curvature_at_point, work)
     curvature_of_points.sort(key=lambda i: i[1])
@@ -320,15 +370,14 @@ def get_indices_of_high_curvature(mesh, cutoff_percentile = 0.15):
 
     return map(lambda tup: tup[0], curvature_of_points[:cutoff_index])
 
-def get_mesh_of_high_curvature(mesh, cutoff_percentile = 0.15):
+def get_mesh_of_high_curvature(mesh, cutoff_percentile = 0.25):
     """Returns a copy of mesh which consists only of points whose absolute
     value of mean curvature is above the cutoff_percentile, by default, this
-    means its curvature is higher than 15% of points on the mesh."""
+    means its curvature is higher than 25% of points on the mesh."""
     from multiprocessing import Pool, cpu_count
     copy = mesh.copy()
 
     work = [(i, mesh) for i in range(len(mesh.vs))]
-    #curvature_of_points = Pool(processes=cpu_count()).map(curvature_at_point, work)
     curvature_of_points = map(curvature_at_point, work)
     curvature_of_points.sort(key=lambda i: i[1])
 

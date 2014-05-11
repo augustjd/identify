@@ -8,17 +8,17 @@ import numpy as np
 import unittest
 
 class TestNumpyArray(unittest.TestCase):
-    def assertArraysEqual(self, left, right, msg = None):
+    def assert_arrays_equal(self, left, right, msg = None):
         if type(left)  is list: left  = np.array(left)
         if type(right) is list: right = np.array(right)
 
         return self.assertTrue(np.array_equal(left, right), msg)
 
-    def assertArraysApproximatelyEqual(self, left, right, msg = None, epsilon = 1e-05):
+    def assert_array_approximately_equal(self, left, right, msg = None, epsilon = 1e-05):
         if type(left)  is list: left  = np.array(left)
         if type(right) is list: right = np.array(right)
 
-        return self.assertTrue(np.allclose(left, right, epsilon), msg)
+        return self.assertTrue(np.allclose(left, right, atol = epsilon), msg)
 
 class TestGeometry(TestNumpyArray):
     def setUp(self):
@@ -30,26 +30,82 @@ class TestGeometry(TestNumpyArray):
     def test_point_translation(self):
         translated_point = np.dot(translation_matrix(np.array([1,1,1])), self.point)
 
-        self.assertArraysEqual(translated_point, [2,1,1,1])
+        self.assert_arrays_equal(translated_point, [2,1,1,1])
 
     def test_cloud_translation(self):
         translated_points = apply_transform(translation_matrix(np.array([1,1,1])), self.points)
 
-        self.assertArraysEqual(translated_points, [[2,1,1,1],
+        self.assert_arrays_equal(translated_points, [[2,1,1,1],
                                                    [1,2,1,1],
                                                    [1,1,2,1]])
 
     def test_point_rotation(self):
         rotated_point = np.dot(promote(rotation_matrix(0,0,math.pi/2)), self.point)
 
-        self.assertArraysApproximatelyEqual(rotated_point, [0.,1.,0.,1.])
+        self.assert_array_approximately_equal(rotated_point, [0.,1.,0.,1.])
 
     def test_cloud_rotation(self):
         rotated_points = apply_transform(promote(rotation_matrix(0,0,math.pi/2)), self.points)
 
-        self.assertArraysApproximatelyEqual(rotated_points, [[0.,1.,0.,1.],
+        self.assert_array_approximately_equal(rotated_points, [[0.,1.,0.,1.],
                                                              [-1,0.,0.,1.],
                                                              [0.,0.,1.,1.]])
+
+    def test_arbitrary_axis_rotation_at_arbitrary_origin(self):
+        import random
+        theta = random.random()
+
+        # does arbitrary_axis_rotation work?
+        self.assert_array_approximately_equal(
+                arbitrary_axis_rotation(np.array([1,0,0]), theta),
+                promote(rotation_matrix(theta,0,0))
+                    )
+
+
+        # the origin should NOT be rotated
+        pt = np.array([1,0,0])
+        mat = arbitrary_axis_rotation_at_arbitrary_origin(np.array([1,0,0]), pt, theta)
+        pt = vector_to_affine(pt)
+
+        self.assert_array_approximately_equal(np.dot(mat, pt), pt)
+
+    def test_unify_segments_matrix(self):
+        import random 
+
+        NUM_TESTS = 100
+        for i in range(NUM_TESTS):
+            MAX_DISTANCE = 10
+
+            def affine(v):
+                result = np.ones(4)
+                result[0:3] = v
+                return result
+
+            origin   = np.random.rand(3)
+            distance = random.random() * MAX_DISTANCE + 1
+
+            a = (unit_vector(np.random.rand(3)) * distance) + origin
+            c = (unit_vector(np.random.rand(3)) * distance) + origin
+
+            mat = get_unify_segments_matrix(a,origin,c)
+
+            a = affine(a)
+            c = affine(c)
+
+            self.assert_array_approximately_equal(a, np.dot(mat, c), "", 0.1)
+
+    def test_principal_axes(self):
+        array = np.array([[1,0,0], [2,0,0], [3,0,0],
+                          [0,0.1,0], [0,0.2,0], [0,0.3,0],
+                          [0,0,1], [0,0,2], [0,0,3],
+                          ])
+
+        axis = principal_axis(array)
+        expected = np.array([1,0,0])
+
+        #self.assert_array_approximately_equal(axis, expected, epsilon = 1e-1)
+
+        print principal_axes(array)
 
 class TestNNSHelpers(TestNumpyArray):
     def setUp(self):
@@ -59,7 +115,7 @@ class TestNNSHelpers(TestNumpyArray):
         self.nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree").fit(self.triangle)
 
     def test_covariance(self):
-        self.assertArraysApproximatelyEqual(
+        self.assert_array_approximately_equal(
                 cross_covariance(self.triangle, self.triangle), [[2/9., 1/9., 0, 0],
                                                                  [1/9., 2/9., 0, 0],
                                                                  [0, 0, 0, 0],
@@ -68,12 +124,12 @@ class TestNNSHelpers(TestNumpyArray):
         test_point = np.array([2,2,0,1])
         closest_point_index = self.nn.kneighbors(test_point)[1]
 
-        self.assertArraysApproximatelyEqual(self.triangle[closest_point_index], [1,1,0,1])
+        self.assert_array_approximately_equal(self.triangle[closest_point_index], [1,1,0,1])
 
         test_point = np.array([-1,-2,0,1])
         closest_point_index = self.nn.kneighbors(test_point)[1]
 
-        self.assertArraysApproximatelyEqual(self.triangle[closest_point_index], [0,0,0,1])
+        self.assert_array_approximately_equal(self.triangle[closest_point_index], [0,0,0,1])
 
     def test_mean_square_error_of_self_is_zero(self):
         self.assertEqual(mean_square_error(self.triangle, self.triangle), 0)
@@ -93,7 +149,7 @@ class TestNNS(TestNumpyArray):
         print
         print result
 
-        self.assertArraysApproximatelyEqual(result, np.identity(4), 
+        self.assert_array_approximately_equal(result, np.identity(4), 
                 "Result should be close to the 4x4 identity matrix.")
 
     def test_large_icp_under_identity(self):
@@ -102,7 +158,7 @@ class TestNNS(TestNumpyArray):
         print
         print result
 
-        self.assertArraysApproximatelyEqual(result, np.identity(4), 
+        self.assert_array_approximately_equal(result, np.identity(4), 
                 "Result should be close to the 4x4 identity matrix.")
 
 
@@ -126,7 +182,7 @@ class TestNNS(TestNumpyArray):
 
         # save_obj_file("./obj/shorts1vertex70transformed.obj", self.stuff[0], transformed, self.stuff[2])
         # save_obj_file("./obj/shorts1vertex70predicted.obj", self.stuff[0], apply_transform(result.T, self.large.copy()), self.stuff[2])
-        self.assertArraysApproximatelyEqual(result.T, transform)
+        self.assert_array_approximately_equal(result.T, transform)
 
     def test_large_icp_under_rotation_and_translation(self):
         self.test_cloud_under_transformation(self.large, np.array([1,1,1,0]), [0.9,1,0])
@@ -149,7 +205,7 @@ class TestNNS(TestNumpyArray):
         print "Predicted point cloud:"
         print apply_transform(result, cloud.copy())
 
-        self.assertArraysApproximatelyEqual(result, transform)
+        self.assert_array_approximately_equal(result, transform)
 
 TEST_TRIMESH = "./nns/testdata/40.obj"
 class TrimeshTest(TestNumpyArray):
@@ -166,7 +222,8 @@ class TrimeshTest(TestNumpyArray):
         M = translation_matrix(translate)
         affine_transform_trimesh(test, M)
 
-        self.assertArraysApproximatelyEqual(test.vs[0], self.mesh.vs[0] + 2*translate)
+        self.assert_array_approximately_equal(test.vs[0], self.mesh.vs[0] + 2*translate)
+
         
 if __name__ == "__main__":
     np.set_printoptions(suppress=True)
@@ -184,9 +241,9 @@ if __name__ == "__main__":
     #suite.addTest(TestNNS("test_large_icp_under_identity"))
     #suite.addTest(TestNNS("test_icp_under_rotation"))
     #suite.addTest(TestNNS("test_icp_under_translation"))
-    suite.addTest(TestNNS("test_large_icp_under_rotation"))
-    suite.addTest(TestNNS("test_large_icp_under_rotation_and_translation"))
+    #suite.addTest(TestNNS("test_large_icp_under_rotation"))
+    #suite.addTest(TestNNS("test_large_icp_under_rotation_and_translation"))
 
-    suite.addTest(TrimeshTest("test_trimesh_transform_function"))
+    #suite.addTest(TrimeshTest("test_trimesh_transform_function"))
 
     unittest.TextTestRunner(verbosity=2).run(suite)
